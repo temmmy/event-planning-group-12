@@ -1,23 +1,70 @@
 import express, { Express, Request, Response } from "express";
 import dotenv from "dotenv";
 import cors from "cors";
-import connectDB from "./config/db";
+import mongoose from "mongoose"; // Use mongoose connection for MongoStore
+import session from "express-session";
+import MongoStore from "connect-mongo";
+import authRoutes from "./routes/authRoutes"; // Import the auth routes
+// import connectDB from "./config/db"; // Assuming direct mongoose connection below
 
-dotenv.config(); // Load environment variables
+// Load environment variables
+dotenv.config();
 
-// Connect to MongoDB
-connectDB();
+// --- Database Connection ---
+const mongoUri = process.env.MONGODB_URI;
+
+if (!mongoUri) {
+  console.error("FATAL ERROR: MONGODB_URI is not defined.");
+  process.exit(1);
+}
+
+// Connect to MongoDB using Mongoose
+mongoose
+  .connect(mongoUri)
+  .then(() => console.log("MongoDB connected successfully via Mongoose."))
+  .catch((err) => {
+    console.error("MongoDB connection error:", err);
+    process.exit(1);
+  });
 
 const app: Express = express();
 
+// --- Session Configuration ---
+const sessionSecret = process.env.SESSION_SECRET;
+if (!sessionSecret) {
+  console.error("FATAL ERROR: SESSION_SECRET is not defined in .env file.");
+  process.exit(1);
+}
+
+app.use(
+  session({
+    secret: sessionSecret,
+    resave: false, // Don't save session if unmodified
+    saveUninitialized: false, // Don't create session until something stored
+    store: MongoStore.create({
+      mongoUrl: mongoUri,
+      collectionName: "sessions", // Optional: name of the sessions collection
+    }),
+    cookie: {
+      secure: process.env.NODE_ENV === "production", // Use secure cookies in production (HTTPS)
+      httpOnly: true, // Prevent client-side JS from accessing the cookie
+      maxAge: 1000 * 60 * 60 * 24 * 7, // Session expiry time (e.g., 7 days)
+      // sameSite: 'lax' // Consider 'lax' or 'strict' for CSRF protection
+    },
+  })
+);
+
 // --- Middleware ---
-// Enable CORS for all origins (adjust for production)
-app.use(cors());
+// Enable CORS - Adjust origins for production!
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN || "http://localhost:5173", // Default to common Vite port
+    credentials: true, // Allow cookies/session info to be sent
+  })
+);
 
-// Body parser middleware to handle JSON request bodies
+// Body parser middleware
 app.use(express.json());
-
-// Body parser middleware to handle URL-encoded request bodies
 app.use(express.urlencoded({ extended: true }));
 
 // --- Routes ---
@@ -26,10 +73,13 @@ app.get("/", (req: Request, res: Response) => {
   res.send("Nikiplan API is running...");
 });
 
-// TODO: Define other API routes here (e.g., app.use('/api/users', userRoutes);)
+// Mount Auth Routes
+app.use("/api/auth", authRoutes); // Use the auth routes
+
+// TODO: Define other API routes here (e.g., event routes, user routes)
 
 // --- Server Start ---
-const PORT = process.env.PORT || 5001; // Use port from .env or default to 5001
+const PORT = process.env.PORT || 5001;
 
 app.listen(PORT, () => {
   console.log(
