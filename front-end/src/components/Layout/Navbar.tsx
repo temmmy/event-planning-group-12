@@ -1,89 +1,147 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { useAppSelector, useAppDispatch } from "../../store/hooks";
-import {
-  selectIsAuthenticated,
-  logoutUser,
-} from "../../features/auth/authSlice";
+import { logoutUser } from "../../features/auth/authSlice";
 
 const Navbar: React.FC = () => {
-  const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const dispatch = useAppDispatch();
+  const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
 
-  const handleLogout = () => {
-    dispatch(logoutUser());
-    // No need to navigate here, ProtectedRoute will handle redirect if necessary
+  // State for mobile menu toggle
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Toggle mobile menu
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
-  // Base classes for links
-  const linkBaseClasses =
-    "px-3 py-2 rounded-md text-sm font-medium transition-colors duration-150 ease-in-out";
-  // Classes for active link
-  const activeLinkClasses = "bg-nord8 text-nord1"; // Active background (accent), dark text
-  // Classes for inactive link
-  const inactiveLinkClasses = "text-nord5 hover:bg-nord3 hover:text-nord6"; // Light text, darker hover bg
+  // Handle logout
+  const handleLogout = () => {
+    dispatch(logoutUser());
+    setIsMobileMenuOpen(false); // Close mobile menu on logout
+  };
 
   return (
-    <nav className="bg-nord0 shadow-md">
-      {" "}
-      {/* Darkest background */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <div className="flex items-center">
-            <Link to="/" className="text-nord8 font-bold text-xl">
-              Nikiplan {/* Accent color for brand */}
-            </Link>
-          </div>
-          <div className="hidden md:block">
-            <div className="ml-10 flex items-baseline space-x-4">
-              {/* Conditional Links based on Auth State */}
-              {isAuthenticated ? (
-                <>
-                  <NavLink
-                    to="/dashboard"
-                    className={({ isActive }) =>
-                      `${linkBaseClasses} ${
-                        isActive ? activeLinkClasses : inactiveLinkClasses
-                      }`
-                    }
-                  >
-                    Dashboard
-                  </NavLink>
-                  {/* Add other authenticated links (Create Event, etc.) */}
-                  <button
-                    onClick={handleLogout}
-                    className={`${linkBaseClasses} ${inactiveLinkClasses} bg-nord11 hover:bg-nord3 hover:text-nord6 text-nord6`} // Logout button style
-                  >
-                    Logout
-                  </button>
-                </>
-              ) : (
-                <>
-                  <NavLink
-                    to="/login"
-                    className={({ isActive }) =>
-                      `${linkBaseClasses} ${
-                        isActive ? activeLinkClasses : inactiveLinkClasses
-                      }`
-                    }
-                  >
-                    Login
-                  </NavLink>
-                  <NavLink
-                    to="/register"
-                    className={({ isActive }) =>
-                      `${linkBaseClasses} ${
-                        isActive ? activeLinkClasses : inactiveLinkClasses
-                      }`
-                    }
-                  >
-                    Register
-                  </NavLink>
-                </>
-              )}
-            </div>
-          </div>
-          {/* TODO: Add mobile menu button and logic */}
+    <nav className="bg-nord0 text-nord6 p-4">
+      <div className="container mx-auto flex items-center justify-between">
+        {/* Brand Logo */}
+        <Link to="/" className="text-2xl font-bold text-nord8">
+          Nikiplan
+        </Link>
+
+        {/* Hamburger Button for Mobile */}
+        <button
+          className="md:hidden text-nord6 focus:outline-none"
+          onClick={toggleMobileMenu}
+          aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
+          aria-expanded={isMobileMenuOpen}
+        >
+          <span className="text-2xl">
+            {isMobileMenuOpen ? "✕" : "☰"} {/* Simple icons; replace with SVG if preferred */}
+          </span>
+        </button>
+
+        {/* Desktop Menu */}
+        <div className="hidden md:flex items-center space-x-4">
+          {!isAuthenticated ? (
+            <>
+              <NavLink
+                to="/login"
+                className={({ isActive }) =>
+                  `px-3 py-2 rounded ${
+                    isActive ? "bg-nord8 text-nord0" : "text-nord6 hover:bg-nord1"
+                  }`
+                }
+              >
+                Login
+              </NavLink>
+              <NavLink
+                to="/register"
+                className={({ isActive }) =>
+                  `px-3 py-2 rounded ${
+                    isActive ? "bg-nord8 text-nord0" : "text-nord6 hover:bg-nord1"
+                  }`
+                }
+              >
+                Register
+              </NavLink>
+            </>
+          ) : (
+            <>
+              <NavLink
+                to="/dashboard"
+                className={({ isActive }) =>
+                  `px-3 py-2 rounded ${
+                    isActive ? "bg-nord8 text-nord0" : "text-nord6 hover:bg-nord1"
+                  }`
+                }
+              >
+                Dashboard
+              </NavLink>
+              <button
+                onClick={handleLogout}
+                className="px-3 py-2 rounded text-nord6 hover:bg-nord1"
+              >
+                Logout
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Mobile Menu */}
+      <div
+        className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${
+          isMobileMenuOpen ? "max-h-96" : "max-h-0"
+        }`}
+      >
+        <div className="flex flex-col items-center space-y-2 py-4">
+          {!isAuthenticated ? (
+            <>
+              <NavLink
+                to="/login"
+                onClick={() => setIsMobileMenuOpen(false)} // Close menu on click
+                className={({ isActive }) =>
+                  `w-full text-center px-3 py-2 rounded ${
+                    isActive ? "bg-nord8 text-nord0" : "text-nord6 hover:bg-nord1"
+                  }`
+                }
+              >
+                Login
+              </NavLink>
+              <NavLink
+                to="/register"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={({ isActive }) =>
+                  `w-full text-center px-3 py-2 rounded ${
+                    isActive ? "bg-nord8 text-nord0" : "text-nord6 hover:bg-nord1"
+                  }`
+                }
+              >
+                Register
+              </NavLink>
+            </>
+          ) : (
+            <>
+              <NavLink
+                to="/dashboard"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={({ isActive }) =>
+                  `w-full text-center px-3 py-2 rounded ${
+                    isActive ? "bg-nord8 text-nord0" : "text-nord6 hover:bg-nord1"
+                  }`
+                }
+              >
+                Dashboard
+              </NavLink>
+              <button
+                onClick={handleLogout}
+                className="w-full text-center px-3 py-2 rounded text-nord6 hover:bg-nord1"
+              >
+                Logout
+              </button>
+            </>
+          )}
         </div>
       </div>
     </nav>
