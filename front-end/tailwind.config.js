@@ -30,6 +30,18 @@ export default {
         nord14: "#A3BE8C", // Green
         nord15: "#B48EAD", // Purple
       },
+      fontFamily: {
+        urbanist: ["Urbanist", "sans-serif"],
+        garamond: ["EB Garamond", "serif"],
+      },
+      boxShadow: {
+        xl: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
+        card: "0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03)",
+        button:
+          "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+        nav: "0 2px 4px rgba(0, 0, 0, 0.04)",
+        soft: "0 5px 15px rgba(0, 0, 0, 0.05)",
+      },
     },
   },
   plugins: [],

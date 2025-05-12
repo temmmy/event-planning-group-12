@@ -66,8 +66,7 @@ function App() {
     <Router>
       <div className="flex flex-col min-h-screen bg-nord1 text-nord6">
         <Navbar />
-        {/* Main content area takes full width with padding */}
-        <main className="flex-grow px-4 py-8">
+        <main className="">
           <Routes>
             {/* Public Routes */}
             <Route path="/login" element={<LoginPage />} />
