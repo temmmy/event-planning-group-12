@@ -13,7 +13,8 @@ import {
   selectAppInitialized,
 } from "./features/auth/authSlice";
 import Navbar from "./components/Layout/Navbar";
-import Footer from "./components/Layout/Footer"; // Import Footer
+import Footer from "./components/Layout/Footer";
+import LoadingScreen from "./components/Common/LoadingScreen";
 // Import page components
 import LoginPage from "./pages/LoginPage";
 import RegistrationPage from "./pages/RegistrationPage";
@@ -53,44 +54,41 @@ function App() {
     }
   }, [dispatch, appInitialized]);
 
-  // Show loading state until the initial check is complete
-  if (!appInitialized) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-nord0 text-nord8">
-        Loading application...
-      </div>
-    );
-  }
-
   return (
-    <Router>
-      <div className="flex flex-col min-h-screen bg-nord1 text-nord6">
-        <Navbar />
-        <main className="">
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegistrationPage />} />
+    <>
+      {/* Animated Loading Screen */}
+      <LoadingScreen isLoading={!appInitialized} />
 
-            {/* Protected Routes - Example: Dashboard */}
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <PlaceholderPage title="Dashboard" />
-                </ProtectedRoute>
-              }
-            />
+      {/* Main App */}
+      <Router>
+        <div className="flex flex-col min-h-screen bg-nord1 text-nord6">
+          <Navbar />
+          <main className="">
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegistrationPage />} />
 
-            {/* Default Route - Always redirect to login page */}
-            <Route path="/" element={<Navigate to="/login" replace />} />
+              {/* Protected Routes - Example: Dashboard */}
+              <Route
+                path="/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <PlaceholderPage title="Dashboard" />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Add other routes here */}
-          </Routes>
-        </main>
-        <Footer />
-      </div>
-    </Router>
+              {/* Default Route - Always redirect to login page */}
+              <Route path="/" element={<Navigate to="/login" replace />} />
+
+              {/* Add other routes here */}
+            </Routes>
+          </main>
+          <Footer />
+        </div>
+      </Router>
+    </>
   );
 }
 
