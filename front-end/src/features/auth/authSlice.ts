@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import * as authService from "../../services/authService";
 import type { RootState } from "../../store";
+import axios from "axios";
 
 // Define types for user data and state
 interface UserData {
@@ -27,28 +28,51 @@ const initialState: AuthState = {
   appInitialized: false,
 };
 
+interface RegisterUserData {
+  username: string;
+  email: string;
+  password: string;
+}
+
+interface LoginCredentials {
+  email: string;
+  password: string;
+}
+
 // --- Async Thunks --- (for API calls)
 
 export const registerUser = createAsyncThunk(
   "auth/registerUser",
-  async (userData: any, { rejectWithValue }) => {
+  async (userData: RegisterUserData, { rejectWithValue }) => {
     try {
       const response = await authService.register(userData);
       return response.message; // Or handle response data as needed
-    } catch (error: any) {
-      return rejectWithValue(error.message || "Registration failed");
+    } catch (error: unknown) {
+      // Handle axios error properly
+      if (axios.isAxiosError(error) && error.response) {
+        return rejectWithValue(
+          error.response.data.message || "Registration failed"
+        );
+      }
+      const err = error as Error;
+      return rejectWithValue(err.message || "Registration failed");
     }
   }
 );
 
 export const loginUser = createAsyncThunk(
   "auth/loginUser",
-  async (credentials: any, { rejectWithValue }) => {
+  async (credentials: LoginCredentials, { rejectWithValue }) => {
     try {
       const data = await authService.login(credentials);
       return data.user as UserData; // Return user data on success
-    } catch (error: any) {
-      return rejectWithValue(error.message || "Login failed");
+    } catch (error: unknown) {
+      // Handle axios error properly
+      if (axios.isAxiosError(error) && error.response) {
+        return rejectWithValue(error.response.data.message || "Login failed");
+      }
+      const err = error as Error;
+      return rejectWithValue(err.message || "Login failed");
     }
   }
 );
@@ -59,8 +83,13 @@ export const logoutUser = createAsyncThunk(
     try {
       await authService.logout();
       return; // No data needed on successful logout
-    } catch (error: any) {
-      return rejectWithValue(error.message || "Logout failed");
+    } catch (error: unknown) {
+      // Handle axios error properly
+      if (axios.isAxiosError(error) && error.response) {
+        return rejectWithValue(error.response.data.message || "Logout failed");
+      }
+      const err = error as Error;
+      return rejectWithValue(err.message || "Logout failed");
     }
   }
 );
@@ -72,8 +101,11 @@ export const checkAuthStatus = createAsyncThunk(
     try {
       const data = await authService.getCurrentUser();
       return data?.user as UserData | null; // Return user data or null
-    } catch (error: any) {
-      return rejectWithValue("Failed to check auth status"); // Don't necessarily fail if 401
+    } catch {
+      // For auth status check, we don't need to show the error to the user
+      // as this is usually called on app startup
+      // 401 Unauthorized is expected when not logged in
+      return rejectWithValue("Failed to check auth status");
     }
   }
 );

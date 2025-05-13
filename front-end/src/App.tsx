@@ -22,6 +22,10 @@ import LoadingScreen from "./components/Common/LoadingScreen";
 import LoginPage from "./pages/LoginPage";
 import RegistrationPage from "./pages/RegistrationPage";
 import AdminSettingsPage from "./pages/AdminSettingsPage";
+import EventsPage from "./pages/EventsPage";
+import CreateEventPage from "./pages/CreateEventPage";
+import EditEventPage from "./pages/EditEventPage";
+import EventDetailPage from "./pages/EventDetailPage";
 // Debug component (only used in development)
 import SessionDebugger from "./components/Debug/SessionDebugger";
 // TODO: Import other pages as they are created (EventsPage, EventDetailPage, etc.)
@@ -94,8 +98,8 @@ const LoginSuccessHandler = () => {
       if (user?.role === "admin") {
         navigate("/admin/settings", { replace: true });
       } else {
-        // Otherwise redirect to dashboard
-        navigate("/dashboard", { replace: true });
+        // Otherwise redirect to events page
+        navigate("/events", { replace: true });
       }
     }
   }, [isAuthenticated, user, navigate]);
@@ -161,6 +165,40 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <PlaceholderPage title="Dashboard" />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Event Routes */}
+                <Route
+                  path="/events"
+                  element={
+                    <ProtectedRoute>
+                      <EventsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/events/create"
+                  element={
+                    <ProtectedRoute>
+                      <CreateEventPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/events/:id"
+                  element={
+                    <ProtectedRoute>
+                      <EventDetailPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/events/:id/edit"
+                  element={
+                    <ProtectedRoute>
+                      <EditEventPage />
                     </ProtectedRoute>
                   }
                 />
