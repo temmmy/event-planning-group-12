@@ -1,3 +1,21 @@
+import mongoose, { Schema, Document } from "mongoose";
+
+/**
+ * Interface for the Settings document
+ */
+export interface ISettings extends Document {
+  maxActiveEventsPerUser: number;
+  maxInvitationsPerEvent: number;
+  maxFileUploadSize: number;
+  allowedFileTypes: string[];
+  defaultReminderTimes: {
+    beforeEvent: number;
+    forNonResponders: number;
+  };
+  updatedBy?: mongoose.Types.ObjectId;
+  updatedAt?: Date;
+}
+
 /**
  * System Settings Schema - Stores admin configurable settings
  */
@@ -21,6 +39,16 @@ const SystemSettingsSchema = new Schema(
       type: [String],
       default: ["image/jpeg", "image/png", "image/gif"],
     },
+    defaultReminderTimes: {
+      beforeEvent: {
+        type: Number,
+        default: 24, // 24 hours before event
+      },
+      forNonResponders: {
+        type: Number,
+        default: 48, // 48 hours after invitation if no response
+      },
+    },
     updatedBy: {
       type: Schema.Types.ObjectId,
       ref: "User",
@@ -32,3 +60,6 @@ const SystemSettingsSchema = new Schema(
   },
   { timestamps: true }
 );
+
+// Create and export the Settings model
+export default mongoose.model<ISettings>("Settings", SystemSettingsSchema);

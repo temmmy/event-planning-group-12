@@ -11,6 +11,7 @@ import {
   checkAuthStatus,
   selectIsAuthenticated,
   selectAppInitialized,
+  selectUser,
 } from "./features/auth/authSlice";
 import Navbar from "./components/Layout/Navbar";
 import Footer from "./components/Layout/Footer";
@@ -18,6 +19,7 @@ import LoadingScreen from "./components/Common/LoadingScreen";
 // Import page components
 import LoginPage from "./pages/LoginPage";
 import RegistrationPage from "./pages/RegistrationPage";
+import AdminSettingsPage from "./pages/AdminSettingsPage";
 // TODO: Import other pages as they are created (EventsPage, EventDetailPage, etc.)
 import "./App.css"; // Keep existing App specific styles
 
@@ -37,6 +39,25 @@ const ProtectedRoute = ({ children }: { children: React.JSX.Element }) => {
   if (!isAuthenticated) {
     // Redirect them to the /login page, saving the current location
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  return children;
+};
+
+// Admin Route Component
+const AdminRoute = ({ children }: { children: React.JSX.Element }) => {
+  const user = useAppSelector(selectUser);
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const location = useLocation();
+
+  if (!isAuthenticated) {
+    // Redirect to login if not authenticated
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (user?.role !== "admin") {
+    // Redirect to dashboard if authenticated but not admin
+    return <Navigate to="/dashboard" state={{ from: location }} replace />;
   }
 
   return children;
@@ -76,6 +97,16 @@ function App() {
                   <ProtectedRoute>
                     <PlaceholderPage title="Dashboard" />
                   </ProtectedRoute>
+                }
+              />
+
+              {/* Admin Routes */}
+              <Route
+                path="/admin/settings"
+                element={
+                  <AdminRoute>
+                    <AdminSettingsPage />
+                  </AdminRoute>
                 }
               />
 

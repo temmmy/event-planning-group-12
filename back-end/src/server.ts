@@ -5,6 +5,7 @@ import mongoose from "mongoose"; // Use mongoose connection for MongoStore
 import session from "express-session";
 import MongoStore from "connect-mongo";
 import authRoutes from "./routes/authRoutes"; // Import the auth routes
+import settingsRoutes from "./routes/settingsRoutes"; // Import the settings routes
 // import connectDB from "./config/db"; // Assuming direct mongoose connection below
 
 // Load environment variables
@@ -75,6 +76,9 @@ app.get("/", (req: Request, res: Response) => {
 
 // Mount Auth Routes
 app.use("/api/auth", authRoutes); // Use the auth routes
+
+// Mount Settings Routes
+app.use("/api/settings", settingsRoutes); // Use the settings routes
 
 // TODO: Define other API routes here (e.g., event routes, user routes)
 

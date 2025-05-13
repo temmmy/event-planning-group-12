@@ -1,11 +1,13 @@
 import React, { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { useAppSelector, useAppDispatch } from "../../store/hooks";
-import { logoutUser } from "../../features/auth/authSlice";
+import { logoutUser, selectUser } from "../../features/auth/authSlice";
 
 const Navbar: React.FC = () => {
   const dispatch = useAppDispatch();
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
+  const user = useAppSelector(selectUser);
+  const isAdmin = user?.role === "admin";
 
   // State for mobile menu toggle
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -96,6 +98,23 @@ const Navbar: React.FC = () => {
                 >
                   Dashboard
                 </NavLink>
+
+                {/* Admin Settings Link - Only shown to admin users */}
+                {isAdmin && (
+                  <NavLink
+                    to="/admin/settings"
+                    className={({ isActive }) =>
+                      `text-sm font-medium transition-colors ${
+                        isActive
+                          ? "text-nord10"
+                          : "text-nord2 hover:text-nord10"
+                      }`
+                    }
+                  >
+                    Admin Settings
+                  </NavLink>
+                )}
+
                 <button
                   onClick={handleLogout}
                   className="text-sm font-medium text-nord2 hover:text-nord10 transition-colors"
@@ -218,6 +237,22 @@ const Navbar: React.FC = () => {
               >
                 Dashboard
               </NavLink>
+
+              {/* Admin Settings Link for mobile - Only shown to admin users */}
+              {isAdmin && (
+                <NavLink
+                  to="/admin/settings"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={({ isActive }) =>
+                    `block px-2 py-2 text-sm font-medium transition-colors ${
+                      isActive ? "text-nord10" : "text-nord2 hover:text-nord10"
+                    }`
+                  }
+                >
+                  Admin Settings
+                </NavLink>
+              )}
+
               <button
                 onClick={handleLogout}
                 className="block w-full text-left px-2 py-2 text-sm font-medium text-nord2 hover:text-nord10 transition-colors"
