@@ -1,19 +1,17 @@
 import { Request, Response, NextFunction } from "express";
 import { Session } from "express-session";
+import mongoose from "mongoose";
 
-// Extended Session interface to include our user property
-interface CustomSession extends Session {
-  user?: {
-    _id: string;
-    username: string;
-    email: string;
-    role: "admin" | "organizer" | "attendee";
-  };
-}
-
-// Extended Request type to include our custom session
-export interface AuthRequest extends Request {
-  session: CustomSession;
+// Extend the session interface to include our user property
+declare module "express-session" {
+  interface SessionData {
+    user?: {
+      userId?: string;
+      username: string;
+      email: string;
+      role: "admin" | "organizer" | "attendee";
+    };
+  }
 }
 
 /**
@@ -25,7 +23,7 @@ export const isAuthenticated = (
   next: NextFunction
 ): void => {
   // Check if the user object exists on the session
-  if (req.session && (req.session as CustomSession).user) {
+  if (req.session && req.session.user) {
     // User is authenticated, proceed to the next middleware or route handler
     next();
   } else {
@@ -43,12 +41,8 @@ export const isAdmin = (
   res: Response,
   next: NextFunction
 ): void => {
-  const authReq = req as AuthRequest;
-  if (
-    authReq.session &&
-    authReq.session.user &&
-    authReq.session.user.role === "admin"
-  ) {
+  // Check user role directly from session
+  if (req.session?.user?.role === "admin") {
     next();
   } else {
     res.status(403).json({ message: "Forbidden: Requires admin role" });

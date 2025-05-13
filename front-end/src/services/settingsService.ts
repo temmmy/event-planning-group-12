@@ -17,7 +17,12 @@ interface ApiErrorResponse {
  */
 export const getSettings = async (): Promise<{ settings: SystemSettings }> => {
   try {
-    const response = await axios.get(`${API_URL}/api/settings`);
+    const response = await axios.get(`${API_URL}/api/settings`, {
+      withCredentials: true,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
     return { settings: response.data };
   } catch (error) {
     if (axios.isAxiosError(error)) {
@@ -39,7 +44,12 @@ export const updateSettings = async (
   settingsData: Partial<SystemSettings>
 ): Promise<{ settings: SystemSettings }> => {
   try {
-    const response = await axios.put(`${API_URL}/api/settings`, settingsData);
+    const response = await axios.put(`${API_URL}/api/settings`, settingsData, {
+      withCredentials: true,
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
     return { settings: response.data };
   } catch (error) {
     if (axios.isAxiosError(error)) {
@@ -49,5 +59,26 @@ export const updateSettings = async (
       );
     }
     throw new Error("Network error when updating settings");
+  }
+};
+
+/**
+ * Debug function to test session state
+ */
+export const debugSession = async (): Promise<{
+  sessionID: string;
+  cookies: string;
+  session: Record<string, unknown>;
+  user: Record<string, unknown> | string;
+}> => {
+  try {
+    const response = await axios.get(`${API_URL}/api/auth/debug-session`, {
+      withCredentials: true,
+    });
+    console.log("Session debug response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Session debug error:", error);
+    throw error;
   }
 };

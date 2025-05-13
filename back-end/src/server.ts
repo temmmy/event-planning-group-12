@@ -61,6 +61,8 @@ app.use(
   cors({
     origin: process.env.CORS_ORIGIN || "http://localhost:5173", // Default to common Vite port
     credentials: true, // Allow cookies/session info to be sent
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 

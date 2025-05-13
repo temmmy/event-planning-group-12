@@ -23,7 +23,8 @@ const LoginForm: React.FC = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      navigate("/"); // Redirect to home/dashboard after login
+      // Redirect to auth-success handler to determine where to go based on role
+      navigate("/auth-success", { replace: true });
     }
   }, [isAuthenticated, navigate]);
 

@@ -1,17 +1,6 @@
 import { Request, Response } from "express";
-import { Session } from "express-session";
+import mongoose from "mongoose";
 import Settings, { ISettings } from "../models/settings";
-
-// Define extended request with user session
-interface AuthRequest extends Request {
-  session: Session & {
-    user?: {
-      _id: string;
-      username: string;
-      role: string;
-    };
-  };
-}
 
 /**
  * Get current system settings
@@ -46,12 +35,14 @@ export const getSettings = async (
  * @access Private (Admin only)
  */
 export const updateSettings = async (
-  req: AuthRequest,
+  req: Request,
   res: Response
 ): Promise<void> => {
   try {
-    // Get user from session
-    const userId = req.session?.user?._id;
+    // Using userId property which is set during login in authController
+    const userId = req.session?.user?.userId;
+
+    console.log("Session user data:", req.session?.user);
 
     if (!userId) {
       res.status(401).json({ message: "User not authenticated" });
@@ -114,8 +105,8 @@ export const updateSettings = async (
       }
     }
 
-    // Update metadata
-    settings.updatedBy = userId;
+    // Update metadata - convert string ID to ObjectId
+    settings.updatedBy = new mongoose.Types.ObjectId(userId);
     settings.updatedAt = new Date();
 
     // Save the updated settings

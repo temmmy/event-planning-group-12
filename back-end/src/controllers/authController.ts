@@ -6,7 +6,12 @@ import mongoose from "mongoose";
 // Extend Express session interface to include user property
 declare module "express-session" {
   interface SessionData {
-    user?: { userId: string; username: string; role: string };
+    user?: {
+      userId?: string;
+      username: string;
+      email: string;
+      role: "admin" | "organizer" | "attendee";
+    };
   }
 }
 
@@ -95,6 +100,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
       // Store user info in session (do NOT store password)
       req.session.user = {
         userId: (user._id as mongoose.Types.ObjectId).toString(),
+        email: user.email,
         username: user.username,
         role: user.role,
       };
@@ -148,4 +154,25 @@ export const getCurrentUser = (req: Request, res: Response): void => {
   } else {
     res.status(401).json({ message: "Not authenticated" });
   }
+};
+
+/**
+ * @desc    Debug endpoint to check session data
+ * @route   GET /api/auth/debug-session
+ * @access  Public (but intended for development use only)
+ */
+export const debugSession = (req: Request, res: Response): void => {
+  // Show what's in the session
+  console.log("Debug session request received");
+  console.log("Session ID:", req.sessionID);
+  console.log("Session data:", req.session);
+  console.log("Cookies:", req.headers.cookie);
+
+  // Return session info (do NOT use this in production as-is!)
+  res.status(200).json({
+    sessionID: req.sessionID,
+    cookies: req.headers.cookie,
+    session: req.session,
+    user: req.session.user || "No user in session",
+  });
 };

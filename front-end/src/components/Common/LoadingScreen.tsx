@@ -6,6 +6,7 @@ interface LoadingScreenProps {
 }
 
 const LoadingScreen: React.FC<LoadingScreenProps> = ({ isLoading }) => {
+  const [isVisible, setIsVisible] = useState(true);
   const [isExiting, setIsExiting] = useState(false);
 
   useEffect(() => {
@@ -13,20 +14,25 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ isLoading }) => {
     if (!isLoading && !isExiting) {
       setIsExiting(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading]);
+  }, [isLoading, isExiting]);
 
-  // If not loading and exit animation completed, don't render anything
-  if (!isLoading && !isExiting) {
+  // Handle animation end
+  const handleAnimationEnd = () => {
+    if (isExiting) {
+      setIsExiting(false);
+      setIsVisible(false);
+    }
+  };
+
+  // If not visible at all, don't render anything
+  if (!isVisible && !isLoading) {
     return null;
   }
 
   return (
     <div
       className={`loading-screen ${isExiting ? "exiting" : ""}`}
-      onAnimationEnd={() => {
-        if (isExiting) setIsExiting(false);
-      }}
+      onAnimationEnd={handleAnimationEnd}
     >
       <div className="loading-content">
         <h1 className="font-garamond text-4xl md:text-5xl font-bold text-white mb-12">
