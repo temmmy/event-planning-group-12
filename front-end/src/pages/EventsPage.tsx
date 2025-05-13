@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
@@ -6,8 +6,9 @@ import {
   selectAllEvents,
   selectEventsLoading,
   selectEventsError,
+  Event, 
 } from "../features/events/eventsSlice";
-import EventCard from "../components/Events/EventCard";
+import EventCard from "../components/Events/EventCard"; 
 import {
   FiGrid,
   FiList,
@@ -16,8 +17,45 @@ import {
   FiCalendar,
   FiSearch,
   FiX,
+  FiLoader, 
+  FiAlertTriangle, 
+  FiInbox, 
 } from "react-icons/fi";
 import { getRelativeTimeDescription } from "../utils/dateUtils";
+import { motion, AnimatePresence, Variants } from "framer-motion";
+
+// Framer Motion Variants
+const pageVariants: Variants = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeInOut" } },
+  exit: { opacity: 0, y: -20, transition: { duration: 0.3, ease: "easeInOut" } },
+};
+
+const filterPanelVariants: Variants = {
+  hidden: { opacity: 0, height: 0, marginTop: 0, marginBottom: 0, transition: { duration: 0.3, ease: "easeInOut" } },
+  visible: { opacity: 1, height: "auto", marginTop: "1rem", marginBottom: "2rem", transition: { duration: 0.3, ease: "easeInOut" } },
+};
+
+const listContainerVariants: Variants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.07,
+      delayChildren: 0.2,
+    },
+  },
+};
+
+const listItemVariants: Variants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: {
+    y: 0,
+    opacity: 1,
+    transition: { type: "spring", stiffness: 100, damping: 12 },
+  },
+};
+
 
 const EventsPage: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -25,407 +63,378 @@ const EventsPage: React.FC = () => {
   const loading = useAppSelector(selectEventsLoading);
   const error = useAppSelector(selectEventsError);
 
-  // UI state
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
-  const [filterVisibility, setFilterVisibility] = useState<
-    "all" | "public" | "private"
-  >("all");
-  const [filterTimeframe, setFilterTimeframe] = useState<
-    "all" | "upcoming" | "past"
-  >("upcoming");
+  const [filterVisibility, setFilterVisibility] = useState<"all" | "public" | "private">("all");
+  const [filterTimeframe, setFilterTimeframe] = useState<"all" | "upcoming" | "past">("upcoming");
 
-  // Fetch events on component mount
   useEffect(() => {
     dispatch(fetchEvents());
   }, [dispatch]);
 
-  // Filter and sort events
-  const filteredEvents = events.filter((event) => {
-    // Apply search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      if (
-        !event.title.toLowerCase().includes(query) &&
-        !event.description.toLowerCase().includes(query) &&
-        !event.location.toLowerCase().includes(query)
-      ) {
-        return false;
+  const processedEvents = useMemo(() => {
+    const filtered = events.filter((event) => {
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        if (
+          !event.title.toLowerCase().includes(query) &&
+          !(event.description || "").toLowerCase().includes(query) &&
+          !(event.location || "").toLowerCase().includes(query)
+        ) return false;
       }
-    }
-
-    // Apply visibility filter
-    if (filterVisibility !== "all" && event.visibility !== filterVisibility) {
-      return false;
-    }
-
-    // Apply timeframe filter
-    if (filterTimeframe !== "all") {
-      const eventDate = new Date(event.date);
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      if (filterTimeframe === "upcoming" && eventDate < today) {
-        return false;
+      if (filterVisibility !== "all" && event.visibility !== filterVisibility) return false;
+      if (filterTimeframe !== "all") {
+        const eventDate = new Date(event.date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        if (filterTimeframe === "upcoming" && eventDate < today) return false;
+        if (filterTimeframe === "past" && eventDate >= today) return false;
       }
+      return true;
+    });
 
-      if (filterTimeframe === "past" && eventDate >= today) {
-        return false;
-      }
-    }
+    filtered.sort((a, b) => {
+        const dateA = new Date(a.date).getTime();
+        const dateB = new Date(b.date).getTime();
+        if (filterTimeframe === "past") {
+            return dateB - dateA; 
+        }
+        return dateA - dateB; 
+    });
 
-    return true;
-  });
 
-  // Group events by date
-  const groupedEvents = filteredEvents.reduce<Record<string, typeof events>>(
-    (groups, event) => {
+    const grouped = filtered.reduce<Record<string, Event[]>>((groups, event) => {
       const eventDate = new Date(event.date);
       const dateKey = getRelativeTimeDescription(eventDate);
-
-      if (!groups[dateKey]) {
-        groups[dateKey] = [];
-      }
-
+      if (!groups[dateKey]) groups[dateKey] = [];
       groups[dateKey].push(event);
       return groups;
-    },
-    {}
-  );
+    }, {});
 
-  // Sort date groups to ensure "Today", "Tomorrow", etc. come before dates
-  const sortedDateGroups = Object.keys(groupedEvents).sort((a, b) => {
-    const specialOrder = ["Today", "Tomorrow"];
-    const aIndex = specialOrder.indexOf(a);
-    const bIndex = specialOrder.indexOf(b);
+    const sortedGroupKeys = Object.keys(grouped).sort((a, b) => {
+      const specialOrder = ["Today", "Tomorrow"];
+      const aIndex = specialOrder.indexOf(a);
+      const bIndex = specialOrder.indexOf(b);
 
-    if (aIndex !== -1 && bIndex !== -1) {
-      return aIndex - bIndex;
-    }
+      if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+      if (aIndex !== -1) return -1;
+      if (bIndex !== -1) return 1;
+      
+     
+      const firstEventA = grouped[a]?.[0];
+      const firstEventB = grouped[b]?.[0];
 
-    if (aIndex !== -1) return -1;
-    if (bIndex !== -1) return 1;
+      if (firstEventA && firstEventB) {
+         const dateA = new Date(firstEventA.date).getTime();
+         const dateB = new Date(firstEventB.date).getTime();
+         if (filterTimeframe === "past") {
+            return dateB - dateA;
+         }
+         return dateA - dateB;
+      }
+      return 0;
+    });
 
-    // For regular dates, sort by the actual date
-    const aEvents = groupedEvents[a];
-    const bEvents = groupedEvents[b];
+    return { filteredEvents: filtered, groupedEvents: grouped, sortedDateGroups: sortedGroupKeys };
+  }, [events, searchQuery, filterVisibility, filterTimeframe]);
 
-    if (aEvents.length > 0 && bEvents.length > 0) {
-      return (
-        new Date(aEvents[0].date).getTime() -
-        new Date(bEvents[0].date).getTime()
-      );
-    }
+  const { filteredEvents, groupedEvents, sortedDateGroups } = processedEvents;
 
-    return 0;
-  });
-
-  // Reset search and filters
   const resetFilters = () => {
     setSearchQuery("");
     setFilterVisibility("all");
-    setFilterTimeframe("upcoming");
+    setFilterTimeframe("upcoming"); 
+    setShowFilters(false);
   };
 
-  // Handle search input
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchQuery(e.target.value);
   };
+  
+  const activeFilterCount =
+    (searchQuery ? 1 : 0) +
+    (filterVisibility !== "all" ? 1 : 0) +
+    (filterTimeframe !== "upcoming" ? 1 : 0); 
 
-  // Render loading state
   if (loading === "pending" && events.length === 0) {
     return (
-      <div className="min-h-screen bg-nord6 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex justify-center items-center h-64">
-            <svg
-              className="animate-spin -ml-1 mr-3 h-8 w-8 text-nord9"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
-            <p className="text-nord10 text-xl">Loading events...</p>
-          </div>
-        </div>
-      </div>
+      <motion.div
+        className="min-h-screen bg-nord6 flex flex-col items-center justify-center p-6 text-nord1" // nord1 for text on nord6
+        variants={pageVariants}
+        initial="initial"
+        animate="animate"
+      >
+        <FiLoader className="animate-spin text-nord9 mb-4" size={48} />
+        <p className="text-xl font-semibold">Loading your events...</p>
+        <p className="text-nord3">Please wait a moment.</p>
+      </motion.div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-nord6 p-4 md:p-6">
+    <motion.div
+      className="min-h-screen bg-nord6 p-4 md:p-6 lg:p-8" // nord6 main background
+      variants={pageVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+    >
       <div className="max-w-7xl mx-auto">
-        {/* Header with title and actions */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8">
-          <h1 className="text-3xl font-garamond font-bold text-nord1 mb-4 sm:mb-0">
+        {/* Header */}
+        <motion.header
+          className="flex flex-col md:flex-row justify-between items-center mb-8 md:mb-10"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0, transition: { delay: 0.1, duration: 0.4 } }}
+        >
+          <h1 className="text-3xl sm:text-4xl font-garamond font-bold text-nord0 mb-4 md:mb-0"> {/* nord0 darkest text */}
             Events
           </h1>
-
-          <div className="w-full sm:w-auto flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
-            {/* Create event button */}
+          <div className="w-full md:w-auto flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
             <Link
               to="/events/create"
-              className="flex items-center justify-center px-4 py-2 bg-nord10 text-white rounded-lg hover:bg-nord9 transition-colors"
+              className="w-full sm:w-auto flex items-center justify-center px-5 py-2.5 bg-nord10 text-nord6 rounded-lg shadow-md hover:bg-nord9 focus:outline-none focus:ring-2 focus:ring-nord8 focus:ring-offset-2 focus:ring-offset-nord6 transition-all duration-200 ease-in-out transform hover:scale-105"
             >
-              <FiPlusCircle className="mr-2" />
-              Create Event
+              <FiPlusCircle className="mr-2.5" size={20} />
+              <span className="font-medium">Create Event</span>
             </Link>
-
-            {/* View mode toggle */}
-            <div className="flex rounded-lg border border-gray-300 overflow-hidden">
-              <button
-                onClick={() => setViewMode("grid")}
-                className={`flex items-center justify-center px-4 py-2 ${
-                  viewMode === "grid"
-                    ? "bg-nord9 text-white"
-                    : "bg-white text-nord3 hover:bg-nord5/50"
-                }`}
-                aria-label="Grid view"
-              >
-                <FiGrid />
-              </button>
-              <button
-                onClick={() => setViewMode("list")}
-                className={`flex items-center justify-center px-4 py-2 ${
-                  viewMode === "list"
-                    ? "bg-nord9 text-white"
-                    : "bg-white text-nord3 hover:bg-nord5/50"
-                }`}
-                aria-label="List view"
-              >
-                <FiList />
-              </button>
+            <div className="flex self-stretch sm:self-auto rounded-lg border border-nord4 bg-nord6 shadow-sm overflow-hidden"> {/* nord4 border */}
+              {([
+                {label: "Grid", value: "grid", icon: FiGrid},
+                {label: "List", value: "list", icon: FiList}
+              ] as const).map(item => (
+                <motion.button
+                    key={item.value}
+                    onClick={() => setViewMode(item.value)}
+                    className={`relative flex-1 sm:flex-auto flex items-center justify-center px-4 py-2.5 text-sm font-medium transition-colors duration-200 focus:outline-none focus:z-10 focus:ring-2 focus:ring-nord9 ${
+                        viewMode === item.value ? "text-nord6" : "text-nord2 hover:bg-nord5 hover:text-nord1" // nord2 secondary text, nord5 light hover
+                    }`}
+                    aria-label={`${item.label} view`}
+                    whileTap={{ scale: 0.95 }}
+                >
+                    <item.icon size={18} className="mr-0 sm:mr-2" />
+                    <span className="hidden sm:inline">{item.label}</span>
+                    {viewMode === item.value && (
+                        <motion.div
+                            className="absolute inset-0 bg-nord9 z-[-1] rounded-md" // nord9 active view
+                            layoutId="activeViewIndicator"
+                            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                        />
+                    )}
+                </motion.button>
+              ))}
             </div>
           </div>
-        </div>
+        </motion.header>
 
-        {/* Search and filters */}
-        <div className="bg-white rounded-xl shadow-sm p-4 mb-8">
-          <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
-            {/* Search */}
-            <div className="flex-1 relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <FiSearch className="text-gray-400" />
+        {/* Search and Filters Bar */}
+        <motion.div
+          className="bg-nord6 sticky top-0 z-20 py-4 -mx-4 px-4 md:-mx-6 md:px-6 lg:-mx-8 lg:px-8 mb-6 shadow-sm backdrop-blur-md bg-opacity-80" 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0, transition: { delay: 0.2, duration: 0.4 } }}
+        >
+          <div className="max-w-7xl mx-auto bg-white p-4 rounded-xl shadow-lg border border-nord5"> {/* nord5 border */}
+            <div className="flex flex-col lg:flex-row gap-4">
+              <div className="flex-grow relative">
+                <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-nord3" size={20} />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  placeholder="Search events..."
+                  className="w-full pl-12 pr-10 py-2.5 border border-nord4 rounded-lg focus:outline-none focus:ring-2 focus:ring-nord10 focus:border-nord10 transition-shadow text-nord1 placeholder-nord3" // nord4 border, nord10 focus, nord1 text, nord3 placeholder
+                />
+                {searchQuery && (
+                  <motion.button
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-nord3 hover:text-nord1"
+                    whileTap={{ scale: 0.9 }}
+                    aria-label="Clear search"
+                    initial={{opacity: 0, scale: 0.8}}
+                    animate={{opacity: 1, scale: 1}}
+                    exit={{opacity: 0, scale: 0.8}}
+                  >
+                    <FiX size={20} />
+                  </motion.button>
+                )}
               </div>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={handleSearchChange}
-                placeholder="Search events by title, description, or location"
-                className="block w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-nord10 focus:border-transparent"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery("")}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
-                >
-                  <FiX />
-                </button>
-              )}
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`w-full lg:w-auto flex items-center justify-center px-5 py-2.5 rounded-lg border font-medium transition-all duration-200 ease-in-out relative ${
+                  showFilters
+                    ? "bg-nord10 text-nord6 border-nord10 shadow-md" // nord10 active filter button
+                    : "bg-nord6 text-nord1 border-nord4 hover:border-nord3 hover:bg-nord5" // nord6 default, nord1 text, nord4 border
+                }`}
+                aria-expanded={showFilters}
+              >
+                <FiFilter className="mr-2.5" size={18} />
+                Filters
+                {activeFilterCount > 0 && (
+                  <motion.span
+                    key={activeFilterCount}
+                    initial={{scale:0.5, opacity:0}}
+                    animate={{scale:1, opacity:1}}
+                    className="ml-2.5 bg-nord11 text-nord6 rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold"
+                  >
+                    {activeFilterCount}
+                  </motion.span>
+                )}
+              </button>
             </div>
 
-            {/* Filter toggle */}
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`md:w-auto flex items-center justify-center px-4 py-2 rounded-md border ${
-                showFilters
-                  ? "bg-nord10 text-white border-nord10"
-                  : "bg-white text-nord3 border-gray-300 hover:bg-nord5/50"
-              }`}
-            >
-              <FiFilter className="mr-2" />
-              Filters
-              {(filterVisibility !== "all" ||
-                filterTimeframe !== "upcoming") && (
-                <span className="ml-2 bg-nord11 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
-                  {(filterVisibility !== "all" ? 1 : 0) +
-                    (filterTimeframe !== "upcoming" ? 1 : 0)}
-                </span>
+            <AnimatePresence>
+              {showFilters && (
+                <motion.div
+                  key="filter-panel"
+                  variants={filterPanelVariants}
+                  initial="hidden"
+                  animate="visible"
+                  exit="hidden"
+                  className="overflow-hidden" 
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 pt-5">
+                    {[
+                      {
+                        label: "Visibility",
+                        state: filterVisibility,
+                        setState: setFilterVisibility,
+                        options: [
+                          { value: "all", label: "All" },
+                          { value: "public", label: "Public" },
+                          { value: "private", label: "Private" },
+                        ],
+                      },
+                      {
+                        label: "Timeframe",
+                        state: filterTimeframe,
+                        setState: setFilterTimeframe,
+                        options: [
+                          { value: "all", label: "All Dates" },
+                          { value: "upcoming", label: "Upcoming" },
+                          { value: "past", label: "Past" },
+                        ],
+                      },
+                    ].map(filterGroup => (
+                      <div key={filterGroup.label}>
+                        <label className="block text-sm font-semibold text-nord1 mb-2.5">{filterGroup.label}</label>
+                        <div className="flex flex-wrap gap-2">
+                          {filterGroup.options.map(opt => (
+                            <motion.button
+                              key={opt.value}
+                              onClick={() => filterGroup.setState(opt.value as any)}
+                              className={`px-3.5 py-1.5 rounded-md text-sm font-medium border transition-all duration-150 ${
+                                filterGroup.state === opt.value
+                                  ? "bg-nord9 text-nord6 border-nord9 shadow-sm" // nord9 active filter option
+                                  : "bg-nord6 text-nord2 border-nord4 hover:border-nord3 hover:text-nord1"
+                              }`}
+                              whileTap={{ scale: 0.97 }}
+                            >
+                              {opt.label}
+                            </motion.button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-5 pt-4 border-t border-nord5 flex justify-end"> {/* nord5 border */}
+                    <button
+                      onClick={resetFilters}
+                      className="px-4 py-1.5 text-sm font-medium text-nord2 hover:text-nord0 hover:bg-nord5 rounded-md transition-colors" // nord2 text
+                    >
+                      Reset All Filters
+                    </button>
+                  </div>
+                </motion.div>
               )}
-            </button>
+            </AnimatePresence>
           </div>
+        </motion.div>
 
-          {/* Expanded filters */}
-          {showFilters && (
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-6">
-                {/* Visibility filter */}
-                <div className="md:w-1/2">
-                  <label className="block text-sm font-medium text-nord3 mb-2">
-                    Visibility
-                  </label>
-                  <div className="flex space-x-4">
-                    <label className="inline-flex items-center">
-                      <input
-                        type="radio"
-                        name="visibility"
-                        value="all"
-                        checked={filterVisibility === "all"}
-                        onChange={() => setFilterVisibility("all")}
-                        className="form-radio h-4 w-4 text-nord10 focus:ring-nord10"
-                      />
-                      <span className="ml-2 text-sm text-nord2">All</span>
-                    </label>
-                    <label className="inline-flex items-center">
-                      <input
-                        type="radio"
-                        name="visibility"
-                        value="public"
-                        checked={filterVisibility === "public"}
-                        onChange={() => setFilterVisibility("public")}
-                        className="form-radio h-4 w-4 text-nord10 focus:ring-nord10"
-                      />
-                      <span className="ml-2 text-sm text-nord2">Public</span>
-                    </label>
-                    <label className="inline-flex items-center">
-                      <input
-                        type="radio"
-                        name="visibility"
-                        value="private"
-                        checked={filterVisibility === "private"}
-                        onChange={() => setFilterVisibility("private")}
-                        className="form-radio h-4 w-4 text-nord10 focus:ring-nord10"
-                      />
-                      <span className="ml-2 text-sm text-nord2">Private</span>
-                    </label>
-                  </div>
-                </div>
-
-                {/* Timeframe filter */}
-                <div className="md:w-1/2">
-                  <label className="block text-sm font-medium text-nord3 mb-2">
-                    When
-                  </label>
-                  <div className="flex space-x-4">
-                    <label className="inline-flex items-center">
-                      <input
-                        type="radio"
-                        name="timeframe"
-                        value="all"
-                        checked={filterTimeframe === "all"}
-                        onChange={() => setFilterTimeframe("all")}
-                        className="form-radio h-4 w-4 text-nord10 focus:ring-nord10"
-                      />
-                      <span className="ml-2 text-sm text-nord2">All dates</span>
-                    </label>
-                    <label className="inline-flex items-center">
-                      <input
-                        type="radio"
-                        name="timeframe"
-                        value="upcoming"
-                        checked={filterTimeframe === "upcoming"}
-                        onChange={() => setFilterTimeframe("upcoming")}
-                        className="form-radio h-4 w-4 text-nord10 focus:ring-nord10"
-                      />
-                      <span className="ml-2 text-sm text-nord2">Upcoming</span>
-                    </label>
-                    <label className="inline-flex items-center">
-                      <input
-                        type="radio"
-                        name="timeframe"
-                        value="past"
-                        checked={filterTimeframe === "past"}
-                        onChange={() => setFilterTimeframe("past")}
-                        className="form-radio h-4 w-4 text-nord10 focus:ring-nord10"
-                      />
-                      <span className="ml-2 text-sm text-nord2">Past</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              {/* Reset filters */}
-              <div className="mt-4 flex justify-end">
-                <button
-                  onClick={resetFilters}
-                  className="px-3 py-1 text-sm text-nord3 hover:text-nord10"
-                >
-                  Reset filters
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* Error message */}
+        {/* Error State */}
         {error && (
-          <div className="mb-8 p-4 bg-red-50 text-red-700 rounded-lg border border-red-100">
-            <p className="font-medium">Error loading events</p>
-            <p>{error}</p>
-          </div>
-        )}
-
-        {/* No results */}
-        {filteredEvents.length === 0 && (
-          <div className="text-center py-16 bg-white rounded-xl shadow-sm">
-            <FiCalendar className="mx-auto text-nord9 mb-4" size={48} />
-            <h2 className="text-xl font-medium text-nord1 mb-2">
-              No events found
-            </h2>
-            <p className="text-nord3 mb-6">
-              {searchQuery
-                ? `No events match your search for "${searchQuery}"`
-                : "You don't have any events yet"}
-            </p>
-            <Link
-              to="/events/create"
-              className="inline-flex items-center px-4 py-2 bg-nord10 text-white rounded-lg hover:bg-nord9 transition-colors"
-            >
-              <FiPlusCircle className="mr-2" />
-              Create your first event
-            </Link>
-          </div>
+          <motion.div
+            className="mb-8 p-5 bg-nord11/10 text-nord11 rounded-xl border border-nord11/30 flex items-start gap-3"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            role="alert"
+          >
+            <FiAlertTriangle size={24} className="flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold">Oops! Something went wrong.</p>
+              <p className="text-sm ">{error}</p>
+            </div>
+          </motion.div>
         )}
 
         {/* Event Listings */}
-        {filteredEvents.length > 0 && (
-          <div className="space-y-8">
-            {sortedDateGroups.map((dateGroup) => (
-              <div key={dateGroup}>
-                {/* Date group heading */}
-                <h2 className="text-lg font-medium text-nord3 mb-4 flex items-center">
-                  <FiCalendar className="mr-2" />
-                  {dateGroup}
-                </h2>
-
-                {/* Events grid or list */}
-                {viewMode === "grid" ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <AnimatePresence mode="wait">
+          {filteredEvents.length === 0 && !error ? (
+            <motion.div
+              key="no-events"
+              className="text-center py-16 sm:py-24 bg-white rounded-xl shadow-lg border border-nord5"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+            >
+              <FiInbox className="mx-auto text-nord8 mb-6" size={56} /> {/* nord8 accent */}
+              <h2 className="text-2xl font-semibold text-nord1 mb-3">
+                No Events Found
+              </h2>
+              <p className="text-nord3 max-w-md mx-auto mb-8">
+                {searchQuery || filterVisibility !== "all" || filterTimeframe !== "upcoming"
+                  ? "Try adjusting your search or filter criteria."
+                  : "Why not create one? Let's get something planned!"}
+              </p>
+              <Link
+                to="/events/create"
+                className="inline-flex items-center px-6 py-3 bg-nord10 text-nord6 rounded-lg shadow-md hover:bg-nord9 focus:outline-none focus:ring-2 focus:ring-nord8 focus:ring-offset-2 focus:ring-offset-white transition-all duration-200 ease-in-out transform hover:scale-105"
+              >
+                <FiPlusCircle className="mr-2.5" size={20}/>
+                Create New Event
+              </Link>
+            </motion.div>
+          ) : (
+            <motion.div key="event-list-container" className="space-y-10">
+              {sortedDateGroups.map((dateGroup, groupIndex) => (
+                <motion.section
+                  key={dateGroup}
+                  variants={listItemVariants} 
+                  initial="hidden"
+                  animate="visible"
+                  transition={{delay: groupIndex * 0.1}} 
+                >
+                  <h2 className="text-xl sm:text-2xl font-semibold text-nord1 mb-5 flex items-center"> {/* nord1 heading text */}
+                    <FiCalendar className="mr-3 text-nord9" size={24} /> {/* nord9 icon color */}
+                    {dateGroup}
+                  </h2>
+                  <motion.div
+                    variants={listContainerVariants}
+                    initial="hidden"
+                    animate="visible"
+                    className={
+                      viewMode === "grid"
+                        ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                        : "space-y-5"
+                    }
+                    
+                    layout 
+                  >
                     {groupedEvents[dateGroup].map((event) => (
-                      <EventCard
-                        key={event._id}
-                        event={event}
-                        isCompact={true}
-                      />
+                       <motion.div key={event._id} variants={listItemVariants} layout>
+                         <EventCard
+                           event={event}
+                           isCompact={viewMode === "grid"}
+                         />
+                       </motion.div>
                     ))}
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {groupedEvents[dateGroup].map((event) => (
-                      <EventCard key={event._id} event={event} />
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
+                  </motion.div>
+                </motion.section>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-    </div>
+    </motion.div>
   );
 };
 
