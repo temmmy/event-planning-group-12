@@ -7,7 +7,7 @@ const SystemSettings = require("../models/settings");
 const Event_ = require("../models/event");
 const Invitation = mongoose.model("Invitation", InvitationSchema);
 const Discussion = mongoose.model("Discussion", DiscussionSchema);
-const Notification_ = mongoose.model("Notification", NotificationSchema);
+const Notification_ = require("../models/notification");
 const Statistics = mongoose.model("Statistics", StatisticsSchema);
 
 module.exports = {

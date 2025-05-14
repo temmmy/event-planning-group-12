@@ -1,5 +1,4 @@
 import express from "express";
-import { isAuthenticated } from "../middleware/authMiddleware";
 import {
   getEvents,
   getEventById,
@@ -8,24 +7,23 @@ import {
   deleteEvent,
   inviteToEvent,
   respondToInvitation,
+  getEventStatistics,
 } from "../controllers/eventController";
-import multer from "multer";
+import { isAuthenticated } from "../middleware/authMiddleware";
+import upload from "../middleware/uploadMiddleware";
 
 const router = express.Router();
 
-// Configure multer for memory storage (we'll handle file saving in the controller)
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit (will be checked against settings in controller)
-  },
-});
-
-// Public routes
+// Get all events and event by ID
 router.get("/", getEvents);
+
+// Admin statistics route - must be before /:id route to avoid conflict
+router.get("/statistics", isAuthenticated, getEventStatistics);
+
+// Get event by ID
 router.get("/:id", getEventById);
 
-// Protected routes (require authentication)
+// Event CRUD routes with authentication
 router.post(
   "/",
   isAuthenticated,
@@ -35,6 +33,7 @@ router.post(
   ]),
   createEvent
 );
+
 router.put(
   "/:id",
   isAuthenticated,
@@ -44,6 +43,7 @@ router.put(
   ]),
   updateEvent
 );
+
 router.delete("/:id", isAuthenticated, deleteEvent);
 
 // Invitation routes

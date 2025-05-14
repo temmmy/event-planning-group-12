@@ -1,3 +1,6 @@
+import mongoose from "mongoose";
+const { Schema } = mongoose;
+
 /**
  * Notification Schema - Stores notifications for reminders and updates
  */
@@ -32,4 +35,20 @@ const NotificationSchema = new Schema(
     },
   },
   { timestamps: true }
+);
+
+// Define interface for Notification document
+export interface INotification extends mongoose.Document {
+  recipient: mongoose.Types.ObjectId;
+  event: mongoose.Types.ObjectId;
+  type: "invitation" | "reminder" | "update" | "no_response";
+  message: string;
+  isRead: boolean;
+  createdAt: Date;
+}
+
+// Create and export the Notification model
+export default mongoose.model<INotification>(
+  "Notification",
+  NotificationSchema
 );

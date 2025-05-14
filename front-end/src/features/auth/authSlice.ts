@@ -170,9 +170,9 @@ export const authSlice = createSlice({
       })
       .addCase(logoutUser.rejected, (state, action) => {
         state.loading = "failed";
-        // Keep user logged in state? Or force logout?
-        // state.isAuthenticated = false; // Consider implications
-        // state.user = null;
+        // Even if logout fails on the server, we'll force logout on the client
+        state.isAuthenticated = false;
+        state.user = null;
         state.error = action.payload as string; // Inform user logout failed
       })
 

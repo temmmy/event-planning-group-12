@@ -22,10 +22,12 @@ import LoadingScreen from "./components/Common/LoadingScreen";
 import LoginPage from "./pages/LoginPage";
 import RegistrationPage from "./pages/RegistrationPage";
 import AdminSettingsPage from "./pages/AdminSettingsPage";
+import AdminEventStatisticsPage from "./pages/AdminEventStatisticsPage";
 import EventsPage from "./pages/EventsPage";
 import CreateEventPage from "./pages/CreateEventPage";
 import EditEventPage from "./pages/EditEventPage";
 import EventDetailPage from "./pages/EventDetailPage";
+import NotificationsPage from "./pages/NotificationsPage";
 // Debug component (only used in development)
 import SessionDebugger from "./components/Debug/SessionDebugger";
 // TODO: Import other pages as they are created (EventsPage, EventDetailPage, etc.)
@@ -203,12 +205,30 @@ function App() {
                   }
                 />
 
+                {/* Notifications Route */}
+                <Route
+                  path="/notifications"
+                  element={
+                    <ProtectedRoute>
+                      <NotificationsPage />
+                    </ProtectedRoute>
+                  }
+                />
+
                 {/* Admin Routes */}
                 <Route
                   path="/admin/settings"
                   element={
                     <AdminRoute>
                       <AdminSettingsPage />
+                    </AdminRoute>
+                  }
+                />
+                <Route
+                  path="/admin/statistics"
+                  element={
+                    <AdminRoute>
+                      <AdminEventStatisticsPage />
                     </AdminRoute>
                   }
                 />

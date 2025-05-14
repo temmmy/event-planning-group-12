@@ -4,6 +4,7 @@ import counterReducer from "../features/counter/counterSlice";
 import authReducer from "../features/auth/authSlice";
 import settingsReducer from "../features/settings/settingsSlice";
 import eventsReducer from "../features/events/eventsSlice";
+import eventStatisticsReducer from "../features/events/eventStatisticsSlice";
 
 export const store = configureStore({
   reducer: {
@@ -12,10 +13,11 @@ export const store = configureStore({
     auth: authReducer,
     settings: settingsReducer,
     events: eventsReducer,
+    eventStatistics: eventStatisticsReducer,
   },
 });
 
 // Infer the `RootState` and `AppDispatch` types from the store itself
 export type RootState = ReturnType<typeof store.getState>;
-// Inferred type: {counter: CounterState, auth: AuthState, settings: SettingsState, events: EventsState}
+// Inferred type: {counter: CounterState, auth: AuthState, settings: SettingsState, events: EventsState, eventStatistics: EventStatisticsState}
 export type AppDispatch = typeof store.dispatch;

@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { useAppSelector, useAppDispatch } from "../../store/hooks";
 import { logoutUser, selectUser } from "../../features/auth/authSlice";
+import NotificationsDropdown from "../Notifications/NotificationsDropdown";
 
 const Navbar: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -98,6 +99,9 @@ const Navbar: React.FC = () => {
                 >
                   Dashboard
                 </NavLink>
+
+                {/* Notifications Dropdown */}
+                <NotificationsDropdown />
 
                 {/* Admin Settings Link - Only shown to admin users */}
                 {isAdmin && (
@@ -237,6 +241,9 @@ const Navbar: React.FC = () => {
               >
                 Dashboard
               </NavLink>
+
+              {/* Notifications Dropdown for mobile */}
+              <NotificationsDropdown />
 
               {/* Admin Settings Link for mobile - Only shown to admin users */}
               {isAdmin && (

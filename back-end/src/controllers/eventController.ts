@@ -797,3 +797,175 @@ export const respondToInvitation = async (
     });
   }
 };
+
+/**
+ * @desc    Get event statistics for admins
+ * @route   GET /api/events/statistics
+ * @access  Private - Admin only
+ */
+export const getEventStatistics = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const userId = req.session?.user?.userId;
+    const userRole = req.session?.user?.role;
+
+    if (!userId) {
+      res.status(401).json({ message: "User not authenticated" });
+      return;
+    }
+
+    // Check if user is admin
+    if (userRole !== "admin") {
+      res.status(403).json({
+        message: "Access denied. Admin privileges required.",
+      });
+      return;
+    }
+
+    // Get count of all events
+    const totalEvents = await Event.countDocuments();
+
+    // Get count of public events
+    const publicEvents = await Event.countDocuments({
+      visibility: "public",
+    });
+
+    // Get count of private events
+    const privateEvents = await Event.countDocuments({
+      visibility: "private",
+    });
+
+    // Get events grouped by month
+    const eventsByMonth = await Event.aggregate([
+      {
+        $group: {
+          _id: {
+            year: { $year: "$date" },
+            month: { $month: "$date" },
+          },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1 } },
+    ]);
+
+    // Get top organizers
+    const topOrganizers = await Event.aggregate([
+      {
+        $group: {
+          _id: "$organizer",
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { count: -1 } },
+      { $limit: 5 },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "organizer",
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          organizer: { $arrayElemAt: ["$organizer", 0] },
+          count: 1,
+        },
+      },
+      {
+        $project: {
+          "organizer._id": 1,
+          "organizer.username": 1,
+          "organizer.email": 1,
+          count: 1,
+        },
+      },
+    ]);
+
+    // Get upcoming events count
+    const upcomingEvents = await Event.countDocuments({
+      date: { $gte: new Date() },
+      isActive: true,
+    });
+
+    // Get past events count
+    const pastEvents = await Event.countDocuments({
+      date: { $lt: new Date() },
+    });
+
+    // Get average attendees per event
+    const averageAttendees = await Event.aggregate([
+      {
+        $group: {
+          _id: null,
+          averageAttendees: { $avg: { $size: "$attendees" } },
+        },
+      },
+    ]);
+
+    // Get events with most attendees
+    const mostPopularEvents = await Event.aggregate([
+      {
+        $project: {
+          title: 1,
+          date: 1,
+          organizer: 1,
+          attendeeCount: { $size: "$attendees" },
+        },
+      },
+      { $sort: { attendeeCount: -1 } },
+      { $limit: 5 },
+      {
+        $lookup: {
+          from: "users",
+          localField: "organizer",
+          foreignField: "_id",
+          as: "organizer",
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          title: 1,
+          date: 1,
+          attendeeCount: 1,
+          organizer: { $arrayElemAt: ["$organizer", 0] },
+        },
+      },
+      {
+        $project: {
+          _id: 1,
+          title: 1,
+          date: 1,
+          attendeeCount: 1,
+          "organizer._id": 1,
+          "organizer.username": 1,
+        },
+      },
+    ]);
+
+    // Return statistics
+    res.status(200).json({
+      totalEvents,
+      publicEvents,
+      privateEvents,
+      eventsByMonth,
+      topOrganizers,
+      upcomingEvents,
+      pastEvents,
+      averageAttendees:
+        averageAttendees.length > 0 ? averageAttendees[0].averageAttendees : 0,
+      mostPopularEvents,
+    });
+  } catch (error: any) {
+    console.error("Error fetching event statistics:", error);
+    res.status(500).json({
+      message: "Server error while fetching event statistics",
+      error: error.message,
+    });
+  }
+};

@@ -10,6 +10,7 @@ import {
 } from "../features/settings/settingsSlice";
 import { selectUser } from "../features/auth/authSlice";
 import adminSvg from "../assets/admin.svg";
+import { Link } from "react-router-dom";
 
 // Admin role check for UI elements
 const useIsAdmin = () => {
@@ -166,11 +167,19 @@ const AdminSettingsPage: React.FC = () => {
               </h1>
             </div>
 
-            {settings?.updatedAt && (
-              <div className="mt-4 md:mt-0 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-lg text-nord6/90 text-sm">
-                Last updated: {new Date(settings.updatedAt).toLocaleString()}
-              </div>
-            )}
+            <div className="mt-4 md:mt-0 flex space-x-4">
+              <Link
+                to="/admin/statistics"
+                className="px-4 py-2 bg-white/10 backdrop-blur-sm rounded-lg text-nord6 text-sm hover:bg-white/20 transition-colors"
+              >
+                View Event Statistics
+              </Link>
+              {settings?.updatedAt && (
+                <div className="px-4 py-2 bg-white/10 backdrop-blur-sm rounded-lg text-nord6/90 text-sm">
+                  Last updated: {new Date(settings.updatedAt).toLocaleString()}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

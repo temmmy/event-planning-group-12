@@ -7,7 +7,9 @@ import MongoStore from "connect-mongo";
 import authRoutes from "./routes/authRoutes"; // Import the auth routes
 import settingsRoutes from "./routes/settingsRoutes"; // Import the settings routes
 import eventRoutes from "./routes/eventRoutes"; // Import the event routes
+import notificationRoutes from "./routes/notificationRoutes"; // Import the notification routes
 import path from "path";
+import { initReminderScheduler } from "./services/reminderService"; // Import the reminder scheduler
 // import connectDB from "./config/db"; // Assuming direct mongoose connection below
 
 // Load environment variables
@@ -90,6 +92,9 @@ app.use("/api/settings", settingsRoutes); // Use the settings routes
 // Mount Event Routes
 app.use("/api/events", eventRoutes); // Use the event routes
 
+// Mount Notification Routes
+app.use("/api/notifications", notificationRoutes); // Use the notification routes
+
 // TODO: Define other API routes here (e.g., event routes, user routes)
 
 // --- Server Start ---
@@ -101,4 +106,7 @@ app.listen(PORT, () => {
       process.env.NODE_ENV || "development"
     } mode on port ${PORT}`
   );
+
+  // Initialize the reminder scheduler for event notifications
+  initReminderScheduler();
 });

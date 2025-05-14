@@ -26,6 +26,7 @@ import { formatDate, getRelativeTimeDescription } from "../utils/dateUtils";
 import InviteUserModal, {
   InviteButton,
 } from "../components/Events/InviteUserModal";
+import ReminderConfig from "../components/Events/ReminderConfig";
 
 const EventDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -412,6 +413,30 @@ const EventDetailPage: React.FC = () => {
                 </div>
               )}
             </div>
+
+            {/* Reminder Configuration Section for Organizers */}
+            {isOrganizer && (
+              <div className="mt-8 border-t border-gray-100 pt-8">
+                <h3 className="text-xl font-semibold text-nord1 mb-4">
+                  Event Notifications
+                </h3>
+                <p className="text-nord3 mb-6">
+                  Set up automatic reminders for attendees. You can schedule
+                  notifications before the event or send reminders to people who
+                  haven't responded to your invitation.
+                </p>
+                <ReminderConfig
+                  eventId={currentEvent._id}
+                  eventDate={currentEvent.date}
+                  onSuccess={() => {
+                    // Refresh event data on successful reminder configuration
+                    if (id) {
+                      dispatch(fetchEventById(id));
+                    }
+                  }}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>
