@@ -7,6 +7,7 @@ import {
   selectAuthLoading,
   selectAuthError,
 } from "../../features/auth/authSlice";
+import AuthLayout from "./AuthLayout";
 
 const RegistrationForm: React.FC = () => {
   const [username, setUsername] = useState("");
@@ -41,94 +42,134 @@ const RegistrationForm: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-nord0 text-nord6">
-      <div className="bg-nord1 p-8 rounded-lg shadow-lg w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-6 text-center text-nord8">
-          Register
-        </h2>
-        <form onSubmit={handleSubmit}>
-          {error && (
-            <div className="bg-nord11 text-nord6 p-3 rounded mb-4 text-sm">
-              {error}
+    <AuthLayout
+      title={
+        <>
+          Register For a <span className="text-nord10">Free Trial</span>
+        </>
+      }
+      subtitle="Join thousands of event planners who are making their events memorable. Create, manage, and track all your events in one place."
+      type="register"
+    >
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {error && (
+          <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm border border-red-200">
+            {error}
+          </div>
+        )}
+
+        {registrationSuccess && (
+          <div className="bg-green-50 text-green-700 p-3 rounded-lg text-sm border border-green-200">
+            Registration successful! Redirecting to login...
+          </div>
+        )}
+
+        <div>
+          <label
+            htmlFor="username"
+            className="block text-sm font-medium text-nord2 mb-1"
+          >
+            Your Name
+          </label>
+          <input
+            type="text"
+            id="username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            required
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-nord8 focus:border-nord8 text-nord1"
+            placeholder="Enter your name"
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor="email"
+            className="block text-sm font-medium text-nord2 mb-1"
+          >
+            Email Address
+          </label>
+          <input
+            type="email"
+            id="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-nord8 focus:border-nord8 text-nord1"
+            placeholder="Enter your email"
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor="course"
+            className="block text-sm font-medium text-nord2 mb-1"
+          >
+            Select your Course
+          </label>
+          <div className="relative">
+            <select
+              id="course"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-nord8 focus:border-nord8 appearance-none text-nord1"
+            >
+              <option value="" disabled selected>
+                Select your course
+              </option>
+              <option value="web-dev">Web Development</option>
+              <option value="data-science">Data Science</option>
+              <option value="mobile-dev">Mobile App Development</option>
+              <option value="ui-ux">UI/UX Design</option>
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-nord3">
+              <svg
+                className="fill-current h-4 w-4"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 20 20"
+              >
+                <path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" />
+              </svg>
             </div>
-          )}
-          {registrationSuccess && (
-            <div className="bg-nord14 text-nord0 p-3 rounded mb-4 text-sm">
-              Registration successful! Redirecting to login...
-            </div>
-          )}
-          <div className="mb-4">
-            <label
-              htmlFor="username"
-              className="block text-nord4 text-sm font-bold mb-2"
-            >
-              Username
-            </label>
-            <input
-              type="text"
-              id="username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-              className="shadow appearance-none border border-nord3 rounded w-full py-2 px-3 bg-nord2 text-nord6 leading-tight focus:outline-none focus:ring-2 focus:ring-nord10 focus:border-transparent placeholder-nord4::placeholder"
-              placeholder="choose_a_username"
-            />
           </div>
-          <div className="mb-4">
-            <label
-              htmlFor="email"
-              className="block text-nord4 text-sm font-bold mb-2"
-            >
-              Email
-            </label>
-            <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="shadow appearance-none border border-nord3 rounded w-full py-2 px-3 bg-nord2 text-nord6 leading-tight focus:outline-none focus:ring-2 focus:ring-nord10 focus:border-transparent placeholder-nord4::placeholder"
-              placeholder="your@email.com"
-            />
-          </div>
-          <div className="mb-6">
-            <label
-              htmlFor="password"
-              className="block text-nord4 text-sm font-bold mb-2"
-            >
-              Password
-            </label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="shadow appearance-none border border-nord3 rounded w-full py-2 px-3 bg-nord2 text-nord6 leading-tight focus:outline-none focus:ring-2 focus:ring-nord10 focus:border-transparent placeholder-nord4::placeholder"
-              placeholder="********"
-            />
-            {/* TODO: Add password confirmation field and validation */}
-          </div>
-          <div className="flex items-center justify-between">
-            <button
-              type="submit"
-              disabled={isLoading || registrationSuccess} // Disable if loading or after success
-              className={`w-full bg-nord10 hover:bg-nord9 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50 disabled:cursor-not-allowed ${
-                isLoading ? "animate-pulse" : ""
-              }`}
-            >
-              {isLoading ? "Registering..." : "Register"}
-            </button>
-          </div>
-          <p className="text-center text-nord4 text-sm mt-6">
-            Already have an account?{" "}
-            <a href="/login" className="text-nord8 hover:text-nord7 font-bold">
-              Login here
-            </a>
-          </p>
-        </form>
-      </div>
-    </div>
+        </div>
+
+        <div>
+          <label
+            htmlFor="password"
+            className="block text-sm font-medium text-nord2 mb-1"
+          >
+            Password
+          </label>
+          <input
+            type="password"
+            id="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-nord8 focus:border-nord8 text-nord1"
+            placeholder="Create a password"
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={isLoading || registrationSuccess}
+          className={`w-full bg-nord10 hover:bg-nord9 text-white font-medium py-2.5 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-nord10 transition-colors ${
+            isLoading || registrationSuccess
+              ? "opacity-70 cursor-not-allowed"
+              : ""
+          }`}
+        >
+          {isLoading ? "Registering..." : "Apply Now"}
+        </button>
+
+        <p className="text-center text-nord3 text-sm mt-6">
+          Already have an account?{" "}
+          <a href="/login" className="text-nord10 hover:text-nord9 font-medium">
+            Login here
+          </a>
+        </p>
+      </form>
+    </AuthLayout>
   );
 };
 

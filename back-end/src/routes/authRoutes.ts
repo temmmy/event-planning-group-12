@@ -4,6 +4,7 @@ import {
   loginUser,
   logoutUser,
   getCurrentUser,
+  debugSession,
 } from "../controllers/authController";
 
 // Simple middleware example to protect routes
@@ -14,6 +15,7 @@ const router = express.Router();
 // Public routes
 router.post("/register", registerUser);
 router.post("/login", loginUser);
+router.get("/debug-session", debugSession); // Debug route for development
 
 // Private routes (require authentication)
 router.post("/logout", isAuthenticated, logoutUser);

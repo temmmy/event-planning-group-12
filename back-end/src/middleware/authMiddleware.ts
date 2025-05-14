@@ -1,4 +1,18 @@
 import { Request, Response, NextFunction } from "express";
+import { Session } from "express-session";
+import mongoose from "mongoose";
+
+// Extend the session interface to include our user property
+declare module "express-session" {
+  interface SessionData {
+    user?: {
+      userId?: string;
+      username: string;
+      email: string;
+      role: "admin" | "organizer" | "attendee";
+    };
+  }
+}
 
 /**
  * Middleware to check if the user is authenticated via session.
@@ -18,11 +32,19 @@ export const isAuthenticated = (
   }
 };
 
-// Example of Role-based access middleware (Optional - can be expanded later)
-// export const isAdmin = (req: Request, res: Response, next: NextFunction): void => {
-//     if (req.session && req.session.user && req.session.user.role === 'admin') {
-//         next();
-//     } else {
-//         res.status(403).json({ message: 'Forbidden: Requires admin role' });
-//     }
-// };
+/**
+ * Middleware to check if the user is an admin.
+ * Requires isAuthenticated to be used first in the route chain.
+ */
+export const isAdmin = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void => {
+  // Check user role directly from session
+  if (req.session?.user?.role === "admin") {
+    next();
+  } else {
+    res.status(403).json({ message: "Forbidden: Requires admin role" });
+  }
+};

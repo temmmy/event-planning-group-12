@@ -1,8 +1,10 @@
-@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400..800;1,400..800&display=swap");
 @import "tailwindcss";
 
 @theme {
-  --font-ibm: "Manrope", sans-serif;
+  --font-urbanist: "Urbanist", sans-serif;
+  --font-garamond: "EB Garamond", serif;
   --color-nord0: #2e3440;
   --color-nord1: #3b4252;
   --color-nord2: #434c5e;
@@ -22,7 +24,7 @@
 }
 
 :root {
-  font-family: var(--font-ibm);
+  font-family: var(--font-urbanist);
   line-height: 1.5;
   font-weight: 400;
 

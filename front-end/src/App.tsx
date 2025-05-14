@@ -1,24 +1,44 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
   useLocation,
+  useNavigate,
 } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "./store/hooks";
 import {
   checkAuthStatus,
   selectIsAuthenticated,
   selectAppInitialized,
+  selectUser,
+  selectAuthLoading,
 } from "./features/auth/authSlice";
 import Navbar from "./components/Layout/Navbar";
-import Footer from "./components/Layout/Footer"; // Import Footer
+import Footer from "./components/Layout/Footer";
+import LoadingScreen from "./components/Common/LoadingScreen";
 // Import page components
 import LoginPage from "./pages/LoginPage";
 import RegistrationPage from "./pages/RegistrationPage";
+<<<<<<< HEAD
+import AdminDashboardPage from "./pages/AdminDashboardPage";
+import AdminSettingsPage from "./pages/AdminSettingsPage";
+import UnauthorizedPage from "./pages/UnauthorizedPage";
+=======
+import AdminSettingsPage from "./pages/AdminSettingsPage";
+import EventsPage from "./pages/EventsPage";
+import CreateEventPage from "./pages/CreateEventPage";
+import EditEventPage from "./pages/EditEventPage";
+import EventDetailPage from "./pages/EventDetailPage";
+// Debug component (only used in development)
+import SessionDebugger from "./components/Debug/SessionDebugger";
+>>>>>>> c59748663a538165bb6fb232a4bf718ff709930d
 // TODO: Import other pages as they are created (EventsPage, EventDetailPage, etc.)
 import "./App.css"; // Keep existing App specific styles
+
+// Environment check
+const isDevelopment = import.meta.env.MODE === "development";
 
 // Placeholder for pages not yet created
 const PlaceholderPage = ({ title }: { title: string }) => (
@@ -28,10 +48,16 @@ const PlaceholderPage = ({ title }: { title: string }) => (
   </div>
 );
 
-// Protected Route Component
+// Protected Route Component with built-in loading state
 const ProtectedRoute = ({ children }: { children: React.JSX.Element }) => {
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const appInitialized = useAppSelector(selectAppInitialized);
   const location = useLocation();
+
+  // Wait for auth check to complete before making a routing decision
+  if (!appInitialized) {
+    return null; // Return nothing while checking auth, LoadingScreen is shown at App level
+  }
 
   if (!isAuthenticated) {
     // Redirect them to the /login page, saving the current location
@@ -41,9 +67,57 @@ const ProtectedRoute = ({ children }: { children: React.JSX.Element }) => {
   return children;
 };
 
+// Admin Route Component with built-in loading state
+const AdminRoute = ({ children }: { children: React.JSX.Element }) => {
+  const user = useAppSelector(selectUser);
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const appInitialized = useAppSelector(selectAppInitialized);
+  const location = useLocation();
+
+  // Wait for auth check to complete before making a routing decision
+  if (!appInitialized) {
+    return null; // Return nothing while checking auth, LoadingScreen is shown at App level
+  }
+
+  if (!isAuthenticated) {
+    // Redirect to login if not authenticated
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (user?.role !== "admin") {
+    // Redirect to dashboard if authenticated but not admin
+    return <Navigate to="/dashboard" state={{ from: location }} replace />;
+  }
+
+  return children;
+};
+
+// Handle Login Success and Admin Redirect
+const LoginSuccessHandler = () => {
+  const user = useAppSelector(selectUser);
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      // If user is an admin, redirect to admin settings page
+      if (user?.role === "admin") {
+        navigate("/admin/settings", { replace: true });
+      } else {
+        // Otherwise redirect to events page
+        navigate("/events", { replace: true });
+      }
+    }
+  }, [isAuthenticated, user, navigate]);
+
+  return null;
+};
+
 function App() {
   const dispatch = useAppDispatch();
   const appInitialized = useAppSelector(selectAppInitialized);
+  const authLoading = useAppSelector(selectAuthLoading);
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   // Check auth status on initial load
   useEffect(() => {
@@ -53,45 +127,148 @@ function App() {
     }
   }, [dispatch, appInitialized]);
 
-  // Show loading state until the initial check is complete
-  if (!appInitialized) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-nord0 text-nord8">
-        Loading application...
-      </div>
-    );
-  }
+  // Set initial load complete after auth check and a minimum duration
+  useEffect(() => {
+    if (appInitialized && !initialLoadComplete) {
+      // Use a longer minimum animation duration for loading screen
+      const timer = setTimeout(() => {
+        setInitialLoadComplete(true);
+      }, 1200); // Longer minimum loading time to ensure animation completes
+
+      return () => clearTimeout(timer);
+    }
+  }, [appInitialized, initialLoadComplete]);
+
+  // Use a more reliable approach to determine when to show loading screen
+  const showLoadingScreen = !appInitialized || !initialLoadComplete;
 
   return (
-    <Router>
-      <div className="flex flex-col min-h-screen bg-nord1 text-nord6">
-        <Navbar />
-        {/* Main content area takes full width with padding */}
-        <main className="flex-grow px-4 py-8">
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegistrationPage />} />
+    <>
+      {/* Keep loading screen outside of Router to prevent routing during transitions */}
+      <LoadingScreen isLoading={showLoadingScreen} />
 
-            {/* Protected Routes - Example: Dashboard */}
+      {!showLoadingScreen && (
+        <Router>
+          <div className="flex flex-col min-h-screen bg-nord1 text-nord6">
+            <Navbar />
+            <main className="flex-grow">
+              {/* Show loading overlay during subsequent auth operations if needed */}
+              {authLoading === "pending" && initialLoadComplete && (
+                <div className="fixed inset-0 bg-nord0 bg-opacity-50 z-40 flex items-center justify-center">
+                  <div className="animate-pulse text-nord6">Loading...</div>
+                </div>
+              )}
+
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegistrationPage />} />
+                <Route path="/auth-success" element={<LoginSuccessHandler />} />
+
+<<<<<<< HEAD
+            {/* Add other routes here */}
+            {/*Admin Routes*/}
             <Route
-              path="/dashboard"
+              path="/admin/dashboard"
               element={
                 <ProtectedRoute>
-                  <PlaceholderPage title="Dashboard" />
+                  <AdminDashboardPage />
                 </ProtectedRoute>
               }
             />
-
-            {/* Default Route - Always redirect to login page */}
-            <Route path="/" element={<Navigate to="/login" replace />} />
-
-            {/* Add other routes here */}
+            <Route
+              path="/admin/settings"
+              element={
+                <ProtectedRoute>
+                  <AdminSettingsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route 
+              path="/unauthorized" 
+              element={
+                <UnauthorizedPage />
+              } 
+            />
           </Routes>
         </main>
         <Footer />
       </div>
     </Router>
+=======
+                {/* Protected Routes - Example: Dashboard */}
+                <Route
+                  path="/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <PlaceholderPage title="Dashboard" />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Event Routes */}
+                <Route
+                  path="/events"
+                  element={
+                    <ProtectedRoute>
+                      <EventsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/events/create"
+                  element={
+                    <ProtectedRoute>
+                      <CreateEventPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/events/:id"
+                  element={
+                    <ProtectedRoute>
+                      <EventDetailPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/events/:id/edit"
+                  element={
+                    <ProtectedRoute>
+                      <EditEventPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Admin Routes */}
+                <Route
+                  path="/admin/settings"
+                  element={
+                    <AdminRoute>
+                      <AdminSettingsPage />
+                    </AdminRoute>
+                  }
+                />
+
+                {/* Default Route - Redirect based on authentication */}
+                <Route
+                  path="/"
+                  element={<Navigate to="/auth-success" replace />}
+                />
+
+                {/* Catch all - redirect to login */}
+                <Route path="*" element={<Navigate to="/login" replace />} />
+              </Routes>
+            </main>
+            <Footer />
+
+            {/* Include session debugger only in development */}
+            {isDevelopment && <SessionDebugger />}
+          </div>
+        </Router>
+      )}
+    </>
+>>>>>>> c59748663a538165bb6fb232a4bf718ff709930d
   );
 }
 

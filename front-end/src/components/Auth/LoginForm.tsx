@@ -8,6 +8,7 @@ import {
   selectAuthLoading,
   selectAuthError,
 } from "../../features/auth/authSlice";
+import AuthLayout from "./AuthLayout";
 
 const LoginForm: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -22,7 +23,8 @@ const LoginForm: React.FC = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      navigate("/"); // Redirect to home/dashboard after login
+      // Redirect to auth-success handler to determine where to go based on role
+      navigate("/auth-success", { replace: true });
     }
   }, [isAuthenticated, navigate]);
 
@@ -33,74 +35,102 @@ const LoginForm: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-nord0 text-nord6">
-      <div className="bg-nord1 p-8 rounded-lg shadow-lg w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-6 text-center text-nord8">
-          Login
-        </h2>
-        <form onSubmit={handleSubmit}>
-          {error && (
-            <div className="bg-nord11 text-nord6 p-3 rounded mb-4 text-sm">
-              {error}
-            </div>
-          )}
-          <div className="mb-4">
-            <label
-              htmlFor="email"
-              className="block text-nord4 text-sm font-bold mb-2"
-            >
-              Email
-            </label>
+    <AuthLayout
+      title={
+        <>
+          Login to Your <span className="text-nord10">Account</span>
+        </>
+      }
+      subtitle="Welcome back! Sign in to access your events, track RSVPs, and manage your event planning all in one place."
+      type="login"
+    >
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {error && (
+          <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm border border-red-200">
+            {error}
+          </div>
+        )}
+
+        <div>
+          <label
+            htmlFor="email"
+            className="block text-sm font-medium text-nord2 mb-1"
+          >
+            Email Address
+          </label>
+          <input
+            type="email"
+            id="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-nord8 focus:border-nord8 text-nord1"
+            placeholder="Enter your email"
+          />
+        </div>
+
+        <div>
+          <label
+            htmlFor="password"
+            className="block text-sm font-medium text-nord2 mb-1"
+          >
+            Password
+          </label>
+          <input
+            type="password"
+            id="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-nord8 focus:border-nord8 text-nord1"
+            placeholder="Enter your password"
+          />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
             <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="shadow appearance-none border border-nord3 rounded w-full py-2 px-3 bg-nord2 text-nord6 leading-tight focus:outline-none focus:ring-2 focus:ring-nord10 focus:border-transparent placeholder-nord4::placeholder"
-              placeholder="your@email.com"
+              id="remember-me"
+              name="remember-me"
+              type="checkbox"
+              className="h-4 w-4 text-nord10 focus:ring-nord8 border-gray-300 rounded"
             />
-          </div>
-          <div className="mb-6">
             <label
-              htmlFor="password"
-              className="block text-nord4 text-sm font-bold mb-2"
+              htmlFor="remember-me"
+              className="ml-2 block text-sm text-nord3"
             >
-              Password
+              Remember me
             </label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="shadow appearance-none border border-nord3 rounded w-full py-2 px-3 bg-nord2 text-nord6 leading-tight focus:outline-none focus:ring-2 focus:ring-nord10 focus:border-transparent placeholder-nord4::placeholder"
-              placeholder="********"
-            />
           </div>
-          <div className="flex items-center justify-between">
-            <button
-              type="submit"
-              disabled={isLoading}
-              className={`w-full bg-nord10 hover:bg-nord9 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:opacity-50 disabled:cursor-not-allowed ${
-                isLoading ? "animate-pulse" : ""
-              }`}
-            >
-              {isLoading ? "Logging In..." : "Login"}
-            </button>
-          </div>
-          <p className="text-center text-nord4 text-sm mt-6">
-            Don't have an account?{" "}
-            <a
-              href="/register"
-              className="text-nord8 hover:text-nord7 font-bold"
-            >
-              Register here
+
+          <div className="text-sm">
+            <a href="#" className="font-medium text-nord10 hover:text-nord9">
+              Forgot password?
             </a>
-          </p>
-        </form>
-      </div>
-    </div>
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          disabled={isLoading}
+          className={`w-full bg-nord10 hover:bg-nord9 text-white font-medium py-2.5 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-nord10 transition-colors ${
+            isLoading ? "opacity-70 cursor-not-allowed" : ""
+          }`}
+        >
+          {isLoading ? "Logging In..." : "Login Now"}
+        </button>
+
+        <p className="text-center text-nord3 text-sm mt-6">
+          Don't have an account?{" "}
+          <a
+            href="/register"
+            className="text-nord10 hover:text-nord9 font-medium"
+          >
+            Register here
+          </a>
+        </p>
+      </form>
+    </AuthLayout>
   );
 };
 

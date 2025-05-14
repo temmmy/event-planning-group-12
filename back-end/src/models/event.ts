@@ -1,7 +1,10 @@
+import mongoose from "mongoose";
+const { Schema } = mongoose;
+
 /**
  * Event Schema - Stores event details
  */
-const EventSchema = new Schema(
+export const EventSchema = new Schema(
   {
     title: {
       type: String,
@@ -33,6 +36,13 @@ const EventSchema = new Schema(
     image: {
       type: String,
       default: "default-event.png",
+    },
+    coverImage: {
+      type: String,
+    },
+    backgroundColor: {
+      type: String,
+      default: "#eceff4", // Nord6 color by default
     },
     visibility: {
       type: String,
@@ -93,3 +103,7 @@ const EventSchema = new Schema(
   },
   { timestamps: true }
 );
+
+// Create and export the Event model
+const Event = mongoose.model("Event", EventSchema);
+export default Event;
