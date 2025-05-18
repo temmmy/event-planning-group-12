@@ -205,139 +205,151 @@ const ReminderConfig: React.FC<ReminderConfigProps> = ({
   if (loading) {
     return (
       <div className="flex justify-center items-center p-4 min-h-[200px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="animate-spin w-8 h-8 border-4 border-nord9 border-t-transparent rounded-full"></div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-4 md:p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold text-gray-800 flex items-center">
-          <FiCalendar className="mr-2 text-blue-500" />
-          Event Reminders
-        </h3>
-        <button
-          onClick={addReminder}
-          className="px-3 py-1 bg-blue-50 text-blue-600 rounded-md flex items-center text-sm hover:bg-blue-100 transition-colors"
-        >
-          <FiPlusCircle className="mr-1" />
-          Add Reminder
-        </button>
-      </div>
-
-      {error && (
-        <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-md flex items-start">
-          <FiAlertCircle className="mr-2 mt-0.5 flex-shrink-0" />
-          <p className="text-sm">{error}</p>
+    <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+      <div className="p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h4 className="text-lg font-medium text-nord1 flex items-center">
+            <FiCalendar className="mr-2 text-nord9" />
+            Configure Reminders
+          </h4>
+          <button
+            onClick={addReminder}
+            className="px-3 py-1 bg-nord9/10 text-nord9 rounded-md flex items-center text-sm hover:bg-nord9/20 transition-colors"
+          >
+            <FiPlusCircle className="mr-1" />
+            Add Reminder
+          </button>
         </div>
-      )}
 
-      {success && (
-        <div className="mb-4 p-3 bg-green-50 text-green-700 rounded-md flex items-start">
-          <FiInfo className="mr-2 mt-0.5 flex-shrink-0" />
-          <p className="text-sm">{success}</p>
-        </div>
-      )}
+        {error && (
+          <div className="mb-4 p-3 bg-nord11/10 text-nord11 rounded-lg flex items-start">
+            <FiAlertCircle className="mr-2 mt-0.5 flex-shrink-0" />
+            <p className="text-sm">{error}</p>
+          </div>
+        )}
 
-      {reminders.length === 0 ? (
-        <div className="bg-gray-50 rounded-md p-4 text-gray-500 text-center">
-          No reminders configured yet. Add a reminder to notify attendees about
-          your event.
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {reminders.map((reminder) => (
-            <div key={reminder.id} className="border rounded-md p-4 bg-gray-50">
-              <div className="flex justify-between items-start mb-3">
-                <div className="w-1/3 pr-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Reminder Type
-                  </label>
-                  <select
-                    value={reminder.type}
-                    onChange={(e) =>
-                      handleChange(reminder.id, "type", e.target.value)
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  >
-                    <option value="upcoming">Upcoming Event</option>
-                    <option value="confirmation">Request Confirmation</option>
-                    <option value="no_response">No Response Reminder</option>
-                  </select>
-                  <p className="mt-1 text-xs text-gray-500">
-                    {getReminderTypeDescription(reminder.type)}
-                  </p>
-                </div>
+        {success && (
+          <div className="mb-4 p-3 bg-nord14/10 text-nord14 rounded-lg flex items-start">
+            <FiInfo className="mr-2 mt-0.5 flex-shrink-0" />
+            <p className="text-sm">{success}</p>
+          </div>
+        )}
 
-                <div className="w-1/3 px-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Send Date & Time
-                  </label>
-                  <input
-                    type="datetime-local"
-                    value={reminder.sendAt}
-                    onChange={(e) =>
-                      handleChange(reminder.id, "sendAt", e.target.value)
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                    max={
-                      reminder.type === "upcoming" ||
-                      reminder.type === "no_response"
-                        ? eventDateObj.toISOString().substring(0, 16)
-                        : undefined
-                    }
-                  />
-                  {(reminder.type === "upcoming" ||
-                    reminder.type === "no_response") && (
-                    <p className="mt-1 text-xs text-gray-500">
-                      Must be scheduled before the event
+        {reminders.length === 0 ? (
+          <div className="bg-nord6/50 rounded-lg p-4 text-nord3 text-center border border-nord5">
+            No reminders configured yet. Add a reminder to notify attendees
+            about your event.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {reminders.map((reminder) => (
+              <div
+                key={reminder.id}
+                className="rounded-lg p-4 bg-nord6/50 border border-nord5"
+              >
+                <div className="flex flex-col md:flex-row justify-between items-start gap-4">
+                  <div className="w-full md:w-1/3">
+                    <label className="block text-sm font-medium text-nord2 mb-1">
+                      Reminder Type
+                    </label>
+                    <select
+                      value={reminder.type}
+                      onChange={(e) =>
+                        handleChange(reminder.id, "type", e.target.value)
+                      }
+                      className="w-full px-3 py-2 border border-nord5 rounded-md focus:outline-none focus:ring-2 focus:ring-nord9/20 focus:border-nord9 text-nord1 bg-white"
+                    >
+                      <option value="upcoming">Upcoming Event</option>
+                      <option value="confirmation">Request Confirmation</option>
+                      <option value="no_response">No Response Reminder</option>
+                    </select>
+                    <p className="mt-1 text-xs text-nord3">
+                      {getReminderTypeDescription(reminder.type)}
                     </p>
-                  )}
-                </div>
+                  </div>
 
-                <div className="flex items-center justify-end w-1/3 pl-2">
-                  <div className="flex-grow">
-                    {reminder.sent && (
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Already sent
-                      </span>
+                  <div className="w-full md:w-1/3">
+                    <label className="block text-sm font-medium text-nord2 mb-1">
+                      Send Date & Time
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={reminder.sendAt}
+                      onChange={(e) =>
+                        handleChange(reminder.id, "sendAt", e.target.value)
+                      }
+                      className="w-full px-3 py-2 border border-nord5 rounded-md focus:outline-none focus:ring-2 focus:ring-nord9/20 focus:border-nord9 text-nord1 bg-white"
+                      max={
+                        reminder.type === "upcoming" ||
+                        reminder.type === "no_response"
+                          ? eventDateObj.toISOString().substring(0, 16)
+                          : undefined
+                      }
+                    />
+                    {(reminder.type === "upcoming" ||
+                      reminder.type === "no_response") && (
+                      <p className="mt-1 text-xs text-nord3">
+                        Must be scheduled before the event
+                      </p>
                     )}
                   </div>
 
-                  <button
-                    onClick={() => removeReminder(reminder.id)}
-                    disabled={reminder.sent}
-                    className={`text-gray-400 hover:text-red-500 transition-colors ${
-                      reminder.sent ? "opacity-50 cursor-not-allowed" : ""
-                    }`}
-                    title={
-                      reminder.sent
-                        ? "Cannot remove sent reminders"
-                        : "Remove reminder"
-                    }
-                  >
-                    <FiTrash2 size={18} />
-                  </button>
+                  <div className="flex items-center justify-between w-full md:w-1/4 md:justify-end">
+                    <div className="flex-grow md:mr-4">
+                      {reminder.sent && (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-nord14/20 text-nord14">
+                          Already sent
+                        </span>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={() => removeReminder(reminder.id)}
+                      disabled={reminder.sent}
+                      className={`text-nord3 hover:text-nord11 transition-colors ${
+                        reminder.sent ? "opacity-50 cursor-not-allowed" : ""
+                      }`}
+                      title={
+                        reminder.sent
+                          ? "Cannot remove sent reminders"
+                          : "Remove reminder"
+                      }
+                    >
+                      <FiTrash2 size={18} />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
 
-      <div className="mt-6 flex justify-end">
-        <button
-          onClick={saveReminders}
-          disabled={saving || reminders.length === 0}
-          className={`px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
-            saving || reminders.length === 0
-              ? "opacity-50 cursor-not-allowed"
-              : ""
-          }`}
-        >
-          {saving ? "Saving..." : "Save Reminders"}
-        </button>
+        <div className="mt-6 flex justify-end">
+          <button
+            onClick={saveReminders}
+            disabled={saving || reminders.length === 0}
+            className={`px-4 py-2 bg-nord9 text-white rounded-md hover:bg-nord10 transition-colors ${
+              saving || reminders.length === 0
+                ? "opacity-50 cursor-not-allowed"
+                : ""
+            }`}
+          >
+            {saving ? (
+              <span className="flex items-center">
+                <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Saving...
+              </span>
+            ) : (
+              "Save Reminders"
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );

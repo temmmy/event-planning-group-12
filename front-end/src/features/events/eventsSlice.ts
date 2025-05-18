@@ -4,7 +4,7 @@ import axios from "axios";
 
 export interface Attendee {
   user: string;
-  status: "pending" | "accepted" | "declined";
+  status: "pending" | "accepted" | "declined" | "requested";
   invitedAt: string;
   respondedAt?: string;
 }
@@ -20,6 +20,7 @@ export interface EventUser {
   name: string;
   email: string;
   profileImage?: string;
+  status?: "pending" | "accepted" | "declined" | "requested";
 }
 
 export interface Event {
@@ -36,6 +37,8 @@ export interface Event {
   coverImageUrl?: string;
   organizer: EventUser;
   attendees: EventUser[];
+  isUserInvited?: boolean;
+  userInvitationStatus?: "pending" | "accepted" | "declined" | "requested";
   createdAt: string;
   updatedAt: string;
 }
@@ -69,12 +72,36 @@ const initialState: EventsState = {
   success: false,
 };
 
+interface FetchEventsParams {
+  visibility?: "all" | "public" | "private";
+  timeframe?: "all" | "upcoming" | "past";
+  myEventsOnly?: boolean;
+  search?: string; // Optional: if you want to handle search server-side
+}
+
 // Async thunks
 export const fetchEvents = createAsyncThunk(
   "events/fetchEvents",
-  async (_, { rejectWithValue }) => {
+  async (params: FetchEventsParams | undefined = {}, { rejectWithValue }) => {
     try {
-      const response = await axios.get("/api/events");
+      // Construct query parameters string
+      const queryParams = new URLSearchParams();
+      if (params?.visibility && params.visibility !== "all") {
+        queryParams.append("visibility", params.visibility);
+      }
+      if (params?.timeframe && params.timeframe !== "all") {
+        queryParams.append("timeframe", params.timeframe);
+      }
+      if (params?.myEventsOnly) {
+        queryParams.append("myEventsOnly", "true");
+      }
+      if (params?.search) {
+        queryParams.append("search", params.search);
+      }
+      const queryString = queryParams.toString();
+      const apiUrl = queryString ? `/api/events?${queryString}` : "/api/events";
+
+      const response = await axios.get(apiUrl);
       return response.data;
     } catch (err: unknown) {
       const error = err as Error;
@@ -158,6 +185,76 @@ export const inviteToEvent = createAsyncThunk(
     } catch (err: unknown) {
       const error = err as Error;
       return rejectWithValue(error.message || "Failed to send invitations");
+    }
+  }
+);
+
+export const respondToInvitation = createAsyncThunk(
+  "events/respondToInvitation",
+  async (
+    { id, status }: { id: string; status: "accepted" | "declined" },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response = await axios.put(`/api/events/${id}/respond`, { status });
+      return response.data;
+    } catch (err: unknown) {
+      const error = err as Error;
+      return rejectWithValue(
+        error.message || "Failed to respond to invitation"
+      );
+    }
+  }
+);
+
+export const requestToJoinEvent = createAsyncThunk(
+  "events/requestToJoinEvent",
+  async (id: string, { rejectWithValue }) => {
+    try {
+      const response = await axios.post(`/api/events/${id}/request-join`);
+      return response.data;
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response) {
+        return rejectWithValue(
+          err.response.data.message || "Failed to request to join event"
+        );
+      }
+      const error = err as Error;
+      return rejectWithValue(
+        error.message || "Failed to request to join event"
+      );
+    }
+  }
+);
+
+export const handleJoinRequest = createAsyncThunk(
+  "events/handleJoinRequest",
+  async (
+    {
+      eventId,
+      userId,
+      status,
+    }: {
+      eventId: string;
+      userId: string;
+      status: "accepted" | "declined";
+    },
+    { rejectWithValue }
+  ) => {
+    try {
+      const response = await axios.put(
+        `/api/events/${eventId}/join-request/${userId}`,
+        { status }
+      );
+      return response.data.event;
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err) && err.response) {
+        return rejectWithValue(
+          err.response.data.message || "Failed to handle join request"
+        );
+      }
+      const error = err as Error;
+      return rejectWithValue(error.message || "Failed to handle join request");
     }
   }
 );
@@ -289,6 +386,99 @@ const eventsSlice = createSlice({
         state.success = true;
       })
       .addCase(inviteToEvent.rejected, (state, action) => {
+        state.loading = "failed";
+        state.error = action.payload as string;
+      })
+
+      // Respond to invitation
+      .addCase(respondToInvitation.pending, (state) => {
+        state.loading = "pending";
+      })
+      .addCase(
+        respondToInvitation.fulfilled,
+        (state, action: PayloadAction<Event>) => {
+          state.loading = "succeeded";
+
+          // Update the event in the events array
+          const index = state.events.findIndex(
+            (e) => e._id === action.payload._id
+          );
+          if (index !== -1) {
+            state.events[index] = action.payload;
+          }
+
+          // Update the current event if it's the one we just responded to
+          if (state.event && state.event._id === action.payload._id) {
+            state.event = action.payload;
+          }
+
+          state.success = true;
+        }
+      )
+      .addCase(respondToInvitation.rejected, (state, action) => {
+        state.loading = "failed";
+        state.error = action.payload as string;
+      })
+
+      // Request to join event
+      .addCase(requestToJoinEvent.pending, (state) => {
+        state.loading = "pending";
+      })
+      .addCase(requestToJoinEvent.fulfilled, (state, action) => {
+        state.loading = "succeeded";
+
+        // The response comes as { event: Event, message: string }
+        const response = action.payload;
+        const updatedEvent = response.event;
+
+        if (updatedEvent) {
+          // Update the event in the events array
+          const index = state.events.findIndex(
+            (e) => e._id === updatedEvent._id
+          );
+          if (index !== -1) {
+            state.events[index] = updatedEvent;
+          }
+
+          // Update the current event if it's the one we just requested to join
+          if (state.event && state.event._id === updatedEvent._id) {
+            state.event = updatedEvent;
+          }
+        }
+
+        state.success = true;
+      })
+      .addCase(requestToJoinEvent.rejected, (state, action) => {
+        state.loading = "failed";
+        state.error = action.payload as string;
+      })
+
+      // Handle join request
+      .addCase(handleJoinRequest.pending, (state) => {
+        state.loading = "pending";
+      })
+      .addCase(
+        handleJoinRequest.fulfilled,
+        (state, action: PayloadAction<Event>) => {
+          state.loading = "succeeded";
+
+          // Update the event in the events array
+          const index = state.events.findIndex(
+            (e) => e._id === action.payload._id
+          );
+          if (index !== -1) {
+            state.events[index] = action.payload;
+          }
+
+          // Update the current event if it's the one we just handled request for
+          if (state.event && state.event._id === action.payload._id) {
+            state.event = action.payload;
+          }
+
+          state.success = true;
+        }
+      )
+      .addCase(handleJoinRequest.rejected, (state, action) => {
         state.loading = "failed";
         state.error = action.payload as string;
       });

@@ -18,12 +18,7 @@ router.put("/:id/read", isAuthenticated, markNotificationRead);
 router.put("/read-all", isAuthenticated, markAllNotificationsRead);
 
 // Event reminders and notification routes
-router.post(
-  "/process-reminders",
-  isAuthenticated,
-  checkRole(["admin"]),
-  processEventReminders
-);
+router.post("/process-reminders", processEventReminders);
 router.post("/events/:id/reminders", isAuthenticated, configureEventReminders);
 router.post("/events/:id/notify-update", isAuthenticated, notifyEventUpdate);
 

@@ -2,6 +2,7 @@ import React from "react";
 import NotificationsList from "../components/Notifications/NotificationsList";
 import { useAppSelector } from "../store/hooks";
 import { Navigate } from "react-router-dom";
+import { FiBell } from "react-icons/fi";
 
 const NotificationsPage: React.FC = () => {
   const isAuthenticated = useAppSelector((state) => state.auth.isAuthenticated);
@@ -12,10 +13,15 @@ const NotificationsPage: React.FC = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="min-h-screen bg-nord6 p-4 md:p-6">
       <div className="max-w-3xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6">Your Notifications</h1>
-        <NotificationsList />
+        <h1 className="text-3xl font-garamond font-bold text-nord1 mb-8 flex items-center">
+          <FiBell className="mr-3 text-nord9" />
+          Your Notifications
+        </h1>
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+          <NotificationsList />
+        </div>
       </div>
     </div>
   );

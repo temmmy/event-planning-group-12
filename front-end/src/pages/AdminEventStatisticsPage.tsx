@@ -76,10 +76,10 @@ const AdminEventStatisticsPage: React.FC = () => {
               restricted to administrators.
             </p>
             <Link
-              to="/"
+              to="/events"
               className="inline-block px-6 py-2 bg-nord10 hover:bg-nord9 text-white font-medium rounded-lg transition-colors duration-300"
             >
-              Return to Dashboard
+              Return to Events
             </Link>
           </div>
         </div>

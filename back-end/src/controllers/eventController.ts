@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import Event, { EventSchema } from "../models/event";
 import User from "../models/user";
 import Settings from "../models/settings";
+import Notification from "../models/notification";
 import path from "path";
 import fs from "fs";
 
@@ -15,6 +16,7 @@ const isOrganizer = async (userId: string, eventId: string) => {
 // Helper function to format event response
 const formatEventResponse = (req: Request, event: any) => {
   const baseUrl = `${req.protocol}://${req.get("host")}/uploads/events/`;
+  const userId = req.session?.user?.userId;
 
   // Format organizer data
   const organizer =
@@ -27,7 +29,7 @@ const formatEventResponse = (req: Request, event: any) => {
         }
       : { _id: event.organizer, name: "", email: "", profileImage: undefined };
 
-  // Format attendees
+  // Format attendees with status
   const attendees = Array.isArray(event.attendees)
     ? event.attendees
         .map((attendee) => {
@@ -37,12 +39,38 @@ const formatEventResponse = (req: Request, event: any) => {
               name: attendee.user.username || "",
               email: attendee.user.email || "",
               profileImage: attendee.user.profileImage,
+              status: attendee.status, // Include the status
             };
           }
           return null;
         })
         .filter(Boolean)
     : [];
+
+  // Check if current user is invited and get their status
+  const isUserInvited =
+    userId && Array.isArray(event.attendees)
+      ? event.attendees.some(
+          (attendee) =>
+            (typeof attendee.user === "object"
+              ? attendee.user?._id
+              : attendee.user
+            )?.toString() === userId
+        )
+      : false;
+
+  // Get the user's invitation status if invited
+  let userInvitationStatus = undefined;
+  if (isUserInvited && userId) {
+    const userAttendee = event.attendees.find(
+      (attendee) =>
+        (typeof attendee.user === "object"
+          ? attendee.user?._id
+          : attendee.user
+        )?.toString() === userId
+    );
+    userInvitationStatus = userAttendee ? userAttendee.status : undefined;
+  }
 
   return {
     ...event,
@@ -52,6 +80,8 @@ const formatEventResponse = (req: Request, event: any) => {
       : undefined,
     organizer,
     attendees,
+    isUserInvited,
+    userInvitationStatus,
   };
 };
 
@@ -66,13 +96,27 @@ export const getEvents = async (req: Request, res: Response): Promise<void> => {
     const userRole = req.session?.user?.role;
 
     // Parse query parameters
-    const { visibility, organizer, search } = req.query;
+    const { visibility, timeframe, myEventsOnly, organizer, search } =
+      req.query;
 
     // Build filter object
     const filter: any = {};
 
+    // "My Events" filter for organizers (takes precedence if set)
+    if (myEventsOnly === "true" && userRole === "organizer" && userId) {
+      filter.organizer = userId;
+    } else if (organizer) {
+      // Handle generic organizer filter (e.g., admin viewing a specific user's events)
+      filter.organizer = organizer as string;
+    }
+
     // Handle visibility filter
-    if (userRole === "admin") {
+    if (filter.organizer && userId === filter.organizer) {
+      // If filtering by logged-in organizer's events, they see all their events (public/private)
+      if (visibility === "public") filter.visibility = "public";
+      else if (visibility === "private") filter.visibility = "private";
+      // No visibility filter implies all of their own events
+    } else if (userRole === "admin") {
       // Admins can see all events by default
       if (visibility === "public") {
         filter.visibility = "public";
@@ -97,10 +141,13 @@ export const getEvents = async (req: Request, res: Response): Promise<void> => {
       filter.visibility = "public";
     }
 
-    // Handle organizer filter (when viewing a specific user's events)
-    if (organizer) {
-      filter.organizer = organizer;
+    // Handle timeframe filter (new)
+    if (timeframe === "upcoming") {
+      filter.date = { $gte: new Date().toISOString().split("T")[0] };
+    } else if (timeframe === "past") {
+      filter.date = { $lt: new Date().toISOString().split("T")[0] };
     }
+    // If timeframe is "all" or not specified, no date filter is applied unless combined with other date logic
 
     // Handle search query
     if (search) {
@@ -212,9 +259,18 @@ export const createEvent = async (
 ): Promise<void> => {
   try {
     const userId = req.session?.user?.userId;
+    const userRole = req.session?.user?.role;
 
     if (!userId) {
       res.status(401).json({ message: "User not authenticated" });
+      return;
+    }
+
+    // Role check: Only admin or organizer can create events
+    if (userRole !== "admin" && userRole !== "organizer") {
+      res.status(403).json({
+        message: "Forbidden: You do not have permission to create events.",
+      });
       return;
     }
 
@@ -607,7 +663,7 @@ export const deleteEvent = async (
 };
 
 /**
- * @desc    Invite users to event
+ * @desc    Invite users to an event
  * @route   POST /api/events/:id/invite
  * @access  Private - Event organizer or admin can invite users
  */
@@ -665,8 +721,13 @@ export const inviteToEvent = async (
 
     // Get current attendee IDs for comparison
     const currentAttendeeIds = event.attendees
-      .map((attendee) => (attendee._id ? attendee._id.toString() : ""))
-      .filter((id) => id);
+      .map((attendee) => {
+        if (attendee.user) {
+          return attendee.user.toString();
+        }
+        return null;
+      })
+      .filter(Boolean);
 
     let newlyAddedUsers = 0;
 
@@ -681,16 +742,23 @@ export const inviteToEvent = async (
         continue;
       }
 
-      // Create new attendee entry with the proper fields
-      const attendeeData = {
-        _id: user._id,
-        name: user.username || "",
-        email: user.email || "",
-        profileImage: user.profileImage,
-      };
-
       // Add to event attendees
-      event.attendees.push(attendeeData as any);
+      event.attendees.push({
+        user: user._id,
+        status: "pending",
+        invitedAt: new Date(),
+      });
+
+      // Create notification for the invited user
+      await Notification.create({
+        recipient: user._id,
+        event: event._id,
+        type: "invitation",
+        message: `You have been invited to "${event.title}" on ${new Date(
+          event.date
+        ).toLocaleDateString()} at ${event.time}.`,
+      });
+
       newlyAddedUsers++;
     }
 
@@ -701,8 +769,8 @@ export const inviteToEvent = async (
 
     // Get updated event with populated fields
     const updatedEvent = await Event.findById(id)
-      .populate("organizer")
-      .populate("attendees")
+      .populate("organizer", "username email profileImage")
+      .populate("attendees.user", "username email profileImage")
       .lean();
 
     // Transform to match frontend expected format
@@ -789,7 +857,10 @@ export const respondToInvitation = async (
       .populate("attendees.user", "username email profileImage")
       .lean();
 
-    res.status(200).json(updatedEvent);
+    // Format the response using the helper function
+    const transformedEvent = formatEventResponse(req, updatedEvent);
+
+    res.status(200).json(transformedEvent);
   } catch (error: any) {
     res.status(500).json({
       message: "Error responding to invitation",
@@ -965,6 +1036,241 @@ export const getEventStatistics = async (
     console.error("Error fetching event statistics:", error);
     res.status(500).json({
       message: "Server error while fetching event statistics",
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * @desc    Request to join a public event
+ * @route   POST /api/events/:id/request-join
+ * @access  Private - Any authenticated user
+ */
+export const requestToJoinEvent = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { id } = req.params;
+    const userId = req.session?.user?.userId;
+
+    if (!userId) {
+      res.status(401).json({ message: "User not authenticated" });
+      return;
+    }
+
+    // Validate ID
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      res.status(400).json({ message: "Invalid event ID" });
+      return;
+    }
+
+    // Find the event
+    const event = await Event.findById(id);
+
+    if (!event) {
+      res.status(404).json({ message: "Event not found" });
+      return;
+    }
+
+    // Check if event is public
+    if (event.visibility !== "public") {
+      res.status(403).json({
+        message: "Can only request to join public events",
+      });
+      return;
+    }
+
+    // Check if user is already an attendee
+    const isAttendee = event.attendees.some(
+      (attendee) => attendee.user && attendee.user.toString() === userId
+    );
+
+    if (isAttendee) {
+      res.status(400).json({
+        message: "You are already an attendee or have a pending request",
+      });
+      return;
+    }
+
+    // Check capacity if specified
+    if (event.capacity && event.capacity > 0) {
+      const acceptedAttendees = event.attendees.filter(
+        (attendee) => attendee.status === "accepted"
+      ).length;
+
+      if (acceptedAttendees >= event.capacity) {
+        res.status(400).json({
+          message: "This event has reached its maximum capacity",
+        });
+        return;
+      }
+    }
+
+    // Add user to attendees with "requested" status
+    event.attendees.push({
+      user: new mongoose.Types.ObjectId(userId),
+      status: "requested",
+      invitedAt: new Date(),
+    });
+
+    await event.save();
+
+    // Create notification for the event organizer
+    await Notification.create({
+      recipient: event.organizer,
+      event: event._id,
+      type: "invitation", // Using existing type
+      message: `A user has requested to join your event "${event.title}"`,
+    });
+
+    // Return updated event
+    const updatedEvent = await Event.findById(id)
+      .populate("organizer", "username email profileImage")
+      .populate("attendees.user", "username email profileImage")
+      .lean();
+
+    // Format the response using the helper function
+    const transformedEvent = formatEventResponse(req, updatedEvent);
+
+    res.status(200).json({
+      message: "Request to join event submitted successfully",
+      event: transformedEvent,
+    });
+  } catch (error: any) {
+    console.error("Error requesting to join event:", error);
+    res.status(500).json({
+      message: "Error requesting to join event",
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * @desc    Approve or reject a request to join an event
+ * @route   PUT /api/events/:id/join-request/:userId
+ * @access  Private - Event organizer or admin only
+ */
+export const handleJoinRequest = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const { id, userId: requestUserId } = req.params;
+    const { status } = req.body;
+    const currentUserId = req.session?.user?.userId;
+    const userRole = req.session?.user?.role;
+
+    if (!currentUserId) {
+      res.status(401).json({ message: "User not authenticated" });
+      return;
+    }
+
+    // Validate IDs
+    if (
+      !mongoose.Types.ObjectId.isValid(id) ||
+      !mongoose.Types.ObjectId.isValid(requestUserId)
+    ) {
+      res.status(400).json({ message: "Invalid ID format" });
+      return;
+    }
+
+    // Validate status
+    if (!status || !["accepted", "declined"].includes(status)) {
+      res.status(400).json({
+        message: "Please provide a valid status (accepted or declined)",
+      });
+      return;
+    }
+
+    // Find the event
+    const event = await Event.findById(id);
+
+    if (!event) {
+      res.status(404).json({ message: "Event not found" });
+      return;
+    }
+
+    // Check if user is admin or organizer
+    const isAdmin = userRole === "admin";
+    const isOrganizer = event.organizer.toString() === currentUserId;
+
+    if (!isAdmin && !isOrganizer) {
+      res.status(403).json({
+        message: "Only event organizer or admin can manage join requests",
+      });
+      return;
+    }
+
+    // Find the attendee with requested status
+    const attendeeIndex = event.attendees.findIndex(
+      (attendee) =>
+        attendee.user &&
+        attendee.user.toString() === requestUserId &&
+        attendee.status === "requested"
+    );
+
+    if (attendeeIndex === -1) {
+      res.status(404).json({ message: "Join request not found" });
+      return;
+    }
+
+    // Check capacity if accepting and capacity is set
+    if (status === "accepted" && event.capacity && event.capacity > 0) {
+      const acceptedAttendees = event.attendees.filter(
+        (attendee) => attendee.status === "accepted"
+      ).length;
+
+      if (acceptedAttendees >= event.capacity) {
+        res.status(400).json({
+          message: "Cannot accept request: event has reached maximum capacity",
+        });
+        return;
+      }
+    }
+
+    // Update attendee status and response time
+    event.attendees[attendeeIndex].status = status;
+    event.attendees[attendeeIndex].respondedAt = new Date();
+
+    await event.save();
+
+    // If accepted, add event to user's attending list
+    if (status === "accepted") {
+      await User.findByIdAndUpdate(requestUserId, {
+        $addToSet: { eventsAttending: id },
+      });
+    }
+
+    // Send notification to user about the decision
+    await Notification.create({
+      recipient: requestUserId,
+      event: event._id,
+      type: "update",
+      message: `Your request to join "${event.title}" has been ${
+        status === "accepted" ? "approved" : "declined"
+      }.`,
+    });
+
+    // Return updated event
+    const updatedEvent = await Event.findById(id)
+      .populate("organizer", "username email profileImage")
+      .populate("attendees.user", "username email profileImage")
+      .lean();
+
+    // Format the response using the helper function
+    const transformedEvent = formatEventResponse(req, updatedEvent);
+
+    res.status(200).json({
+      message: `Join request ${
+        status === "accepted" ? "approved" : "declined"
+      } successfully`,
+      event: transformedEvent,
+    });
+  } catch (error: any) {
+    console.error("Error handling join request:", error);
+    res.status(500).json({
+      message: "Error handling join request",
       error: error.message,
     });
   }

@@ -1,3 +1,6 @@
+import mongoose from "mongoose";
+const Schema = mongoose.Schema;
+
 /**
  * Discussion Schema - Stores event discussion board
  */
@@ -36,3 +39,20 @@ const DiscussionSchema = new Schema(
   },
   { timestamps: true }
 );
+
+// Create and export the Discussion model
+const Discussion = mongoose.model("Discussion", DiscussionSchema);
+
+export interface DiscussionDocument extends mongoose.Document {
+  event: mongoose.Types.ObjectId;
+  messages: {
+    _id: mongoose.Types.ObjectId;
+    author: mongoose.Types.ObjectId;
+    content: string;
+    createdAt: Date;
+  }[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export default Discussion;

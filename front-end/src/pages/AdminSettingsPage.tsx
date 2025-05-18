@@ -141,10 +141,10 @@ const AdminSettingsPage: React.FC = () => {
               restricted to administrators.
             </p>
             <a
-              href="/"
+              href="/events"
               className="inline-block px-6 py-2 bg-nord10 hover:bg-nord9 text-white font-medium rounded-lg transition-colors duration-300"
             >
-              Return to Dashboard
+              Return to Events
             </a>
           </div>
         </div>

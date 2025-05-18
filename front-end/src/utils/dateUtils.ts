@@ -81,3 +81,24 @@ export const daysUntil = (date: Date): number => {
     (targetDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
   );
 };
+
+/**
+ * Format a time string (HH:MM) into a 12-hour format with AM/PM
+ * @param timeString - The time string to format (e.g., "14:30")
+ * @returns Formatted time string (e.g., "2:30 PM")
+ */
+export const formatTime = (timeString: string): string => {
+  if (!timeString || !timeString.includes(":")) {
+    return "Invalid Time"; // Or return the original string, or an empty one
+  }
+  const [hours, minutes] = timeString.split(":").map(Number);
+
+  if (isNaN(hours) || isNaN(minutes)) {
+    return "Invalid Time";
+  }
+
+  const ampm = hours >= 12 ? "PM" : "AM";
+  const twelveHour = hours % 12 || 12; // Convert 0 or 12 to 12
+
+  return `${twelveHour}:${minutes.toString().padStart(2, "0")} ${ampm}`;
+};

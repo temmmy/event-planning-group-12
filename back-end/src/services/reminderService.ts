@@ -52,7 +52,7 @@ export const initReminderScheduler = (): void => {
 
   // Schedule to run every 5 minutes
   // Cron format: minute hour day-of-month month day-of-week
-  cron.schedule("*/5 * * * *", async () => {
+  cron.schedule("*/1 * * * *", async () => {
     console.log("[ReminderService] Running scheduled reminder check...");
     await processReminders();
   });

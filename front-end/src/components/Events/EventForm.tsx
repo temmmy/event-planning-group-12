@@ -299,7 +299,7 @@ const EventForm: React.FC<EventFormProps> = ({
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Event title..."
-            className="w-full text-3xl md:text-4xl font-garamond font-semibold placeholder-gray-300 bg-transparent border-none focus:outline-none focus:ring-0"
+            className="w-full text-3xl md:text-4xl font-garamond font-semibold text-nord1 placeholder-gray-300 bg-transparent border-none focus:outline-none focus:ring-0"
             required
           />
 
@@ -375,7 +375,7 @@ const EventForm: React.FC<EventFormProps> = ({
                       type="date"
                       value={date}
                       onChange={(e) => setDate(e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-nord10 focus:border-nord10"
+                      className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-nord10 focus:border-nord10 text-nord1"
                       required
                     />
                   </div>
@@ -398,7 +398,7 @@ const EventForm: React.FC<EventFormProps> = ({
                       type="time"
                       value={time}
                       onChange={(e) => setTime(e.target.value)}
-                      className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-nord10 focus:border-nord10"
+                      className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-nord10 focus:border-nord10 text-nord1"
                       required
                     />
                   </div>
@@ -425,7 +425,7 @@ const EventForm: React.FC<EventFormProps> = ({
                       value={location}
                       onChange={(e) => setLocation(e.target.value)}
                       placeholder="Enter location"
-                      className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-nord10 focus:border-nord10"
+                      className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-nord10 focus:border-nord10 text-nord1 placeholder-gray-400"
                       required
                     />
                   </div>
@@ -450,7 +450,7 @@ const EventForm: React.FC<EventFormProps> = ({
                       value={capacity}
                       onChange={(e) => setCapacity(e.target.value)}
                       placeholder="Maximum number of attendees"
-                      className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-nord10 focus:border-nord10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      className="w-full p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-nord10 focus:border-nord10 text-nord1 placeholder-gray-400 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                   </div>
                 </div>
@@ -519,7 +519,7 @@ const EventForm: React.FC<EventFormProps> = ({
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Write a description for your event..."
-                className="w-full h-48 p-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-nord10 focus:border-nord10 placeholder-gray-400"
+                className="w-full h-48 p-4 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-nord10 focus:border-nord10 text-nord1 placeholder-gray-400"
                 required
               />
             </div>

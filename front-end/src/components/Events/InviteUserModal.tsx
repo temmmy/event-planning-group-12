@@ -71,7 +71,7 @@ const InviteUserModal: React.FC<InviteUserModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 backdrop-blur-sm bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-lg max-w-md w-full p-6">
         <div className="flex justify-between items-start mb-4">
           <h3 className="text-xl font-bold text-nord1">Invite People</h3>
@@ -109,7 +109,7 @@ const InviteUserModal: React.FC<InviteUserModalProps> = ({
                 value={inviteEmails}
                 onChange={(e) => setInviteEmails(e.target.value)}
                 placeholder="Enter email addresses (separated by commas or new lines)"
-                className="block w-full pl-10 pr-3 py-2 sm:text-sm border border-gray-300 rounded-md focus:ring-nord10 focus:border-nord10"
+                className="block w-full pl-10 pr-4 py-2.5 text-nord1 bg-white border border-nord5 rounded-lg focus:ring-2 focus:ring-nord10 focus:border-nord10 sm:text-sm transition-colors"
                 rows={3}
               />
             </div>

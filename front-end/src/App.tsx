@@ -36,13 +36,15 @@ import "./App.css"; // Keep existing App specific styles
 // Environment check
 const isDevelopment = import.meta.env.MODE === "development";
 
-// Placeholder for pages not yet created
+// Placeholder for pages not yet created - REMOVED
+/*
 const PlaceholderPage = ({ title }: { title: string }) => (
   <div className="min-h-screen flex items-center justify-center bg-nord0 text-nord6">
     <h1 className="text-3xl">{title} Page (Placeholder)</h1>
     <p>You are logged in!</p>
   </div>
 );
+*/
 
 // Protected Route Component with built-in loading state
 const ProtectedRoute = ({ children }: { children: React.JSX.Element }) => {
@@ -81,8 +83,35 @@ const AdminRoute = ({ children }: { children: React.JSX.Element }) => {
   }
 
   if (user?.role !== "admin") {
-    // Redirect to dashboard if authenticated but not admin
-    return <Navigate to="/dashboard" state={{ from: location }} replace />;
+    // Redirect to events page if authenticated but not admin
+    return <Navigate to="/events" state={{ from: location }} replace />;
+  }
+
+  return children;
+};
+
+// OrganizerOrAdmin Route Component
+const OrganizerOrAdminRoute = ({
+  children,
+}: {
+  children: React.JSX.Element;
+}) => {
+  const user = useAppSelector(selectUser);
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const appInitialized = useAppSelector(selectAppInitialized);
+  const location = useLocation();
+
+  if (!appInitialized) {
+    return null;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  if (user?.role !== "admin" && user?.role !== "organizer") {
+    // Redirect to events page if authenticated but not admin or organizer
+    return <Navigate to="/events" state={{ from: location }} replace />;
   }
 
   return children;
@@ -161,7 +190,8 @@ function App() {
                 <Route path="/register" element={<RegistrationPage />} />
                 <Route path="/auth-success" element={<LoginSuccessHandler />} />
 
-                {/* Protected Routes - Example: Dashboard */}
+                {/* Protected Routes - Example: Dashboard - REMOVED */}
+                {/*
                 <Route
                   path="/dashboard"
                   element={
@@ -170,6 +200,7 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
+                */}
 
                 {/* Event Routes */}
                 <Route
@@ -183,9 +214,9 @@ function App() {
                 <Route
                   path="/events/create"
                   element={
-                    <ProtectedRoute>
+                    <OrganizerOrAdminRoute>
                       <CreateEventPage />
-                    </ProtectedRoute>
+                    </OrganizerOrAdminRoute>
                   }
                 />
                 <Route

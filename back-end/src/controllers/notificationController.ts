@@ -145,12 +145,19 @@ export const processEventReminders = async (
 ): Promise<void> => {
   try {
     const userRole = req.session?.user?.role;
+    const receivedApiKey = req.headers["x-api-key"];
 
     // This route should only be accessible via internal cron or admin
     if (
-      req.headers["x-api-key"] !== process.env.INTERNAL_API_KEY &&
-      userRole !== "admin"
+      receivedApiKey !== process.env.INTERNAL_API_KEY &&
+      userRole !== "admin" &&
+      userRole !== "organizer"
     ) {
+      console.warn(
+        `[ProcessReminders] Unauthorized access attempt. API Key Match: ${
+          receivedApiKey === process.env.INTERNAL_API_KEY
+        }, Role: ${userRole}`
+      );
       res.status(403).json({ message: "Unauthorized access" });
       return;
     }

@@ -9,6 +9,7 @@ import { Request, Response, NextFunction } from "express";
 export const checkRole = (allowedRoles: string[]) => {
   return (req: Request, res: Response, next: NextFunction): void => {
     const userRole = req.session?.user?.role;
+    console.log(userRole);
 
     if (!userRole) {
       res.status(401).json({ message: "Not authenticated" });

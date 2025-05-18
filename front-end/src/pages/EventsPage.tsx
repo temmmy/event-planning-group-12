@@ -7,6 +7,7 @@ import {
   selectEventsLoading,
   selectEventsError,
 } from "../features/events/eventsSlice";
+import { selectUser } from "../features/auth/authSlice";
 import EventCard from "../components/Events/EventCard";
 import {
   FiGrid,
@@ -16,6 +17,7 @@ import {
   FiCalendar,
   FiSearch,
   FiX,
+  FiUserCheck,
 } from "react-icons/fi";
 import { getRelativeTimeDescription } from "../utils/dateUtils";
 
@@ -24,6 +26,7 @@ const EventsPage: React.FC = () => {
   const events = useAppSelector(selectAllEvents);
   const loading = useAppSelector(selectEventsLoading);
   const error = useAppSelector(selectEventsError);
+  const currentUser = useAppSelector(selectUser);
 
   // UI state
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
@@ -35,11 +38,37 @@ const EventsPage: React.FC = () => {
   const [filterTimeframe, setFilterTimeframe] = useState<
     "all" | "upcoming" | "past"
   >("upcoming");
+  const [filterMyEventsOnly, setFilterMyEventsOnly] = useState(false);
 
-  // Fetch events on component mount
+  // Fetch events on component mount and when filters change
   useEffect(() => {
-    dispatch(fetchEvents());
-  }, [dispatch]);
+    dispatch(
+      fetchEvents({
+        visibility: filterVisibility,
+        timeframe: filterTimeframe,
+        myEventsOnly:
+          currentUser?.role === "organizer" ? filterMyEventsOnly : undefined,
+      })
+    );
+  }, [
+    dispatch,
+    filterVisibility,
+    filterTimeframe,
+    filterMyEventsOnly,
+    currentUser?.role,
+  ]);
+
+  // Function to refresh events (used for RSVP changes)
+  const refreshEvents = () => {
+    dispatch(
+      fetchEvents({
+        visibility: filterVisibility,
+        timeframe: filterTimeframe,
+        myEventsOnly:
+          currentUser?.role === "organizer" ? filterMyEventsOnly : undefined,
+      })
+    );
+  };
 
   // Filter and sort events
   const filteredEvents = events.filter((event) => {
@@ -121,16 +150,17 @@ const EventsPage: React.FC = () => {
     return 0;
   });
 
-  // Reset search and filters
-  const resetFilters = () => {
-    setSearchQuery("");
-    setFilterVisibility("all");
-    setFilterTimeframe("upcoming");
+  const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(event.target.value);
+    // Future: Debounce and dispatch fetchEvents with search query if backend handles it
   };
 
-  // Handle search input
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
+  const resetFilters = () => {
+    setFilterVisibility("all");
+    setFilterTimeframe("upcoming");
+    setFilterMyEventsOnly(false); // Reset the new filter
+    // setSearchQuery(""); // Uncomment if search is also part of resettable filters
+    setShowFilters(false); // Optionally close filters section on reset
   };
 
   // Render loading state
@@ -177,13 +207,16 @@ const EventsPage: React.FC = () => {
 
           <div className="w-full sm:w-auto flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
             {/* Create event button */}
-            <Link
-              to="/events/create"
-              className="flex items-center justify-center px-4 py-2 bg-nord10 text-white rounded-lg hover:bg-nord9 transition-colors"
-            >
-              <FiPlusCircle className="mr-2" />
-              Create Event
-            </Link>
+            {(currentUser?.role === "organizer" ||
+              currentUser?.role === "admin") && (
+              <Link
+                to="/events/create"
+                className="flex items-center justify-center px-4 py-2 bg-nord10 text-white rounded-lg hover:bg-nord9 transition-colors"
+              >
+                <FiPlusCircle className="mr-2" />
+                Create Event
+              </Link>
+            )}
 
             {/* View mode toggle */}
             <div className="flex rounded-lg border border-gray-300 overflow-hidden">
@@ -250,10 +283,14 @@ const EventsPage: React.FC = () => {
               <FiFilter className="mr-2" />
               Filters
               {(filterVisibility !== "all" ||
-                filterTimeframe !== "upcoming") && (
+                filterTimeframe !== "upcoming" ||
+                (currentUser?.role === "organizer" && filterMyEventsOnly)) && (
                 <span className="ml-2 bg-nord11 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">
                   {(filterVisibility !== "all" ? 1 : 0) +
-                    (filterTimeframe !== "upcoming" ? 1 : 0)}
+                    (filterTimeframe !== "upcoming" ? 1 : 0) +
+                    (currentUser?.role === "organizer" && filterMyEventsOnly
+                      ? 1
+                      : 0)}
                 </span>
               )}
             </button>
@@ -262,98 +299,195 @@ const EventsPage: React.FC = () => {
           {/* Expanded filters */}
           {showFilters && (
             <div className="mt-4 pt-4 border-t border-gray-200">
-              <div className="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-6">
-                {/* Visibility filter */}
-                <div className="md:w-1/2">
-                  <label className="block text-sm font-medium text-nord3 mb-2">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-6 mb-6">
+                {/* Visibility Filter */}
+                <div className="md:col-span-1">
+                  <h3 className="text-sm font-medium text-nord1 mb-3">
                     Visibility
-                  </label>
-                  <div className="flex space-x-4">
-                    <label className="inline-flex items-center">
-                      <input
-                        type="radio"
-                        name="visibility"
-                        value="all"
-                        checked={filterVisibility === "all"}
-                        onChange={() => setFilterVisibility("all")}
-                        className="form-radio h-4 w-4 text-nord10 focus:ring-nord10"
-                      />
-                      <span className="ml-2 text-sm text-nord2">All</span>
+                  </h3>
+                  <div className="flex flex-wrap gap-x-6 gap-y-3">
+                    <label className="inline-flex items-center group cursor-pointer">
+                      <div className="relative">
+                        <input
+                          type="radio"
+                          name="visibility"
+                          value="all"
+                          checked={filterVisibility === "all"}
+                          onChange={() => setFilterVisibility("all")}
+                          className="sr-only"
+                        />
+                        <div className="w-5 h-5 border-2 border-nord5 rounded-full group-hover:border-nord9 transition-colors">
+                          {filterVisibility === "all" && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="w-3 h-3 bg-nord9 rounded-full"></div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <span className="ml-2 text-nord2 group-hover:text-nord1 transition-colors">
+                        All
+                      </span>
                     </label>
-                    <label className="inline-flex items-center">
-                      <input
-                        type="radio"
-                        name="visibility"
-                        value="public"
-                        checked={filterVisibility === "public"}
-                        onChange={() => setFilterVisibility("public")}
-                        className="form-radio h-4 w-4 text-nord10 focus:ring-nord10"
-                      />
-                      <span className="ml-2 text-sm text-nord2">Public</span>
+
+                    <label className="inline-flex items-center group cursor-pointer">
+                      <div className="relative">
+                        <input
+                          type="radio"
+                          name="visibility"
+                          value="public"
+                          checked={filterVisibility === "public"}
+                          onChange={() => setFilterVisibility("public")}
+                          className="sr-only"
+                        />
+                        <div className="w-5 h-5 border-2 border-nord5 rounded-full group-hover:border-nord9 transition-colors">
+                          {filterVisibility === "public" && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="w-3 h-3 bg-nord9 rounded-full"></div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <span className="ml-2 text-nord2 group-hover:text-nord1 transition-colors">
+                        Public
+                      </span>
                     </label>
-                    <label className="inline-flex items-center">
-                      <input
-                        type="radio"
-                        name="visibility"
-                        value="private"
-                        checked={filterVisibility === "private"}
-                        onChange={() => setFilterVisibility("private")}
-                        className="form-radio h-4 w-4 text-nord10 focus:ring-nord10"
-                      />
-                      <span className="ml-2 text-sm text-nord2">Private</span>
+
+                    <label className="inline-flex items-center group cursor-pointer">
+                      <div className="relative">
+                        <input
+                          type="radio"
+                          name="visibility"
+                          value="private"
+                          checked={filterVisibility === "private"}
+                          onChange={() => setFilterVisibility("private")}
+                          className="sr-only"
+                        />
+                        <div className="w-5 h-5 border-2 border-nord5 rounded-full group-hover:border-nord9 transition-colors">
+                          {filterVisibility === "private" && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="w-3 h-3 bg-nord9 rounded-full"></div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <span className="ml-2 text-nord2 group-hover:text-nord1 transition-colors">
+                        Private
+                      </span>
                     </label>
                   </div>
                 </div>
 
-                {/* Timeframe filter */}
-                <div className="md:w-1/2">
-                  <label className="block text-sm font-medium text-nord3 mb-2">
-                    When
-                  </label>
-                  <div className="flex space-x-4">
-                    <label className="inline-flex items-center">
-                      <input
-                        type="radio"
-                        name="timeframe"
-                        value="all"
-                        checked={filterTimeframe === "all"}
-                        onChange={() => setFilterTimeframe("all")}
-                        className="form-radio h-4 w-4 text-nord10 focus:ring-nord10"
-                      />
-                      <span className="ml-2 text-sm text-nord2">All dates</span>
+                {/* Timeframe Filter */}
+                <div className="md:col-span-1">
+                  <h3 className="text-sm font-medium text-nord1 mb-3">When</h3>
+                  <div className="flex flex-wrap gap-x-6 gap-y-3">
+                    <label className="inline-flex items-center group cursor-pointer">
+                      <div className="relative">
+                        <input
+                          type="radio"
+                          name="timeframe"
+                          value="all"
+                          checked={filterTimeframe === "all"}
+                          onChange={() => setFilterTimeframe("all")}
+                          className="sr-only"
+                        />
+                        <div className="w-5 h-5 border-2 border-nord5 rounded-full group-hover:border-nord9 transition-colors">
+                          {filterTimeframe === "all" && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="w-3 h-3 bg-nord9 rounded-full"></div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <span className="ml-2 text-nord2 group-hover:text-nord1 transition-colors">
+                        All dates
+                      </span>
                     </label>
-                    <label className="inline-flex items-center">
-                      <input
-                        type="radio"
-                        name="timeframe"
-                        value="upcoming"
-                        checked={filterTimeframe === "upcoming"}
-                        onChange={() => setFilterTimeframe("upcoming")}
-                        className="form-radio h-4 w-4 text-nord10 focus:ring-nord10"
-                      />
-                      <span className="ml-2 text-sm text-nord2">Upcoming</span>
+
+                    <label className="inline-flex items-center group cursor-pointer">
+                      <div className="relative">
+                        <input
+                          type="radio"
+                          name="timeframe"
+                          value="upcoming"
+                          checked={filterTimeframe === "upcoming"}
+                          onChange={() => setFilterTimeframe("upcoming")}
+                          className="sr-only"
+                        />
+                        <div className="w-5 h-5 border-2 border-nord5 rounded-full group-hover:border-nord9 transition-colors">
+                          {filterTimeframe === "upcoming" && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="w-3 h-3 bg-nord9 rounded-full"></div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <span className="ml-2 text-nord2 group-hover:text-nord1 transition-colors">
+                        Upcoming
+                      </span>
                     </label>
-                    <label className="inline-flex items-center">
-                      <input
-                        type="radio"
-                        name="timeframe"
-                        value="past"
-                        checked={filterTimeframe === "past"}
-                        onChange={() => setFilterTimeframe("past")}
-                        className="form-radio h-4 w-4 text-nord10 focus:ring-nord10"
-                      />
-                      <span className="ml-2 text-sm text-nord2">Past</span>
+
+                    <label className="inline-flex items-center group cursor-pointer">
+                      <div className="relative">
+                        <input
+                          type="radio"
+                          name="timeframe"
+                          value="past"
+                          checked={filterTimeframe === "past"}
+                          onChange={() => setFilterTimeframe("past")}
+                          className="sr-only"
+                        />
+                        <div className="w-5 h-5 border-2 border-nord5 rounded-full group-hover:border-nord9 transition-colors">
+                          {filterTimeframe === "past" && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="w-3 h-3 bg-nord9 rounded-full"></div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <span className="ml-2 text-nord2 group-hover:text-nord1 transition-colors">
+                        Past
+                      </span>
                     </label>
                   </div>
                 </div>
+
+                {/* Organizer's "My Events" Filter */}
+                {currentUser?.role === "organizer" && (
+                  <div className="md:col-span-1">
+                    <h3 className="text-sm font-medium text-nord1 mb-3 flex items-center">
+                      <FiUserCheck className="mr-2 text-nord10" /> My Created
+                      Events
+                    </h3>
+                    <div className="space-y-3">
+                      <label
+                        htmlFor="my-events-filter"
+                        className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:border-nord9 transition-all cursor-pointer group"
+                      >
+                        <input
+                          type="checkbox"
+                          id="my-events-filter"
+                          checked={filterMyEventsOnly}
+                          onChange={(e) =>
+                            setFilterMyEventsOnly(e.target.checked)
+                          }
+                          className="form-checkbox h-5 w-5 text-nord10 rounded focus:ring-nord10 focus:ring-offset-0 transition duration-150 ease-in-out"
+                        />
+                        <span className="text-sm text-nord2 group-hover:text-nord1">
+                          Show only events I created
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                )}
               </div>
-
-              {/* Reset filters */}
-              <div className="mt-4 flex justify-end">
+              {/* Reset filters button reinstated */}
+              <div className="flex justify-end">
                 <button
                   onClick={resetFilters}
-                  className="px-3 py-1 text-sm text-nord3 hover:text-nord10"
+                  className="flex items-center px-4 py-1.5 text-sm text-nord3 hover:text-nord10 border border-nord5 rounded-md hover:bg-nord6/50 transition-colors"
                 >
+                  <FiX className="mr-1.5" />
                   Reset filters
                 </button>
               </div>
@@ -381,13 +515,16 @@ const EventsPage: React.FC = () => {
                 ? `No events match your search for "${searchQuery}"`
                 : "You don't have any events yet"}
             </p>
-            <Link
-              to="/events/create"
-              className="inline-flex items-center px-4 py-2 bg-nord10 text-white rounded-lg hover:bg-nord9 transition-colors"
-            >
-              <FiPlusCircle className="mr-2" />
-              Create your first event
-            </Link>
+            {(currentUser?.role === "organizer" ||
+              currentUser?.role === "admin") && (
+              <Link
+                to="/events/create"
+                className="inline-flex items-center px-4 py-2 bg-nord10 text-white rounded-lg hover:bg-nord9 transition-colors"
+              >
+                <FiPlusCircle className="mr-2" />
+                Create your first event
+              </Link>
+            )}
           </div>
         )}
 
@@ -410,13 +547,18 @@ const EventsPage: React.FC = () => {
                         key={event._id}
                         event={event}
                         isCompact={true}
+                        onRSVPChange={refreshEvents}
                       />
                     ))}
                   </div>
                 ) : (
                   <div className="space-y-4">
                     {groupedEvents[dateGroup].map((event) => (
-                      <EventCard key={event._id} event={event} />
+                      <EventCard
+                        key={event._id}
+                        event={event}
+                        onRSVPChange={refreshEvents}
+                      />
                     ))}
                   </div>
                 )}

@@ -1,12 +1,27 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { FiBell, FiCheck, FiCalendar, FiInfo } from "react-icons/fi";
+import {
+  FiBell,
+  FiCheck,
+  FiInfo,
+  FiAlertOctagon,
+  FiClock,
+  FiCheckCircle,
+  FiXCircle,
+} from "react-icons/fi";
 import { API_URL } from "../../config";
 
 interface Notification {
   _id: string;
-  type: "reminder" | "update" | "no_response";
+  type:
+    | "reminder"
+    | "update"
+    | "no_response"
+    | "invitation"
+    | "join_request"
+    | "request_approved"
+    | "request_declined";
   message: string;
   isRead: boolean;
   createdAt: string;
@@ -118,37 +133,53 @@ const NotificationsList: React.FC = () => {
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case "reminder":
-        return <FiCalendar className="text-blue-500" />;
+        return <FiClock className="text-nord13" />;
       case "update":
-        return <FiInfo className="text-green-500" />;
-      case "no_response":
-        return <FiBell className="text-yellow-500" />;
+        return <FiInfo className="text-nord9" />;
+      case "invitation":
+        return <FiBell className="text-nord10" />;
+      case "join_request":
+        return <FiAlertOctagon className="text-nord12" />;
+      case "request_approved":
+        return <FiCheckCircle className="text-nord14" />;
+      case "request_declined":
+        return <FiXCircle className="text-nord11" />;
       default:
-        return <FiBell className="text-gray-500" />;
+        return <FiBell className="text-nord3" />;
     }
   };
 
   // Format date to readable format
-  const formatDate = (dateString: string) => {
+  const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
-    return (
-      date.toLocaleDateString() +
-      " " +
-      date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-    );
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffInSeconds < 60) {
+      return "just now";
+    } else if (diffInSeconds < 3600) {
+      const minutes = Math.floor(diffInSeconds / 60);
+      return `${minutes} ${minutes === 1 ? "minute" : "minutes"} ago`;
+    } else if (diffInSeconds < 86400) {
+      const hours = Math.floor(diffInSeconds / 3600);
+      return `${hours} ${hours === 1 ? "hour" : "hours"} ago`;
+    } else {
+      return date.toLocaleDateString();
+    }
   };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[200px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="flex justify-center items-center p-10 min-h-[200px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-nord9"></div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="p-4 bg-red-100 text-red-700 rounded-md">
+      <div className="p-6 bg-nord11/10 text-nord11 rounded-md flex items-center">
+        <FiAlertOctagon className="mr-3 flex-shrink-0" size={20} />
         <p>{error}</p>
       </div>
     );
@@ -156,84 +187,84 @@ const NotificationsList: React.FC = () => {
 
   if (notifications.length === 0) {
     return (
-      <div className="p-4 text-center">
-        <FiBell className="mx-auto text-gray-400 text-4xl mb-2" />
-        <p className="text-gray-500">No notifications yet</p>
+      <div className="p-10 text-center text-nord3">
+        <FiBell className="mx-auto text-nord5 text-5xl mb-4" />
+        <p className="text-lg">No notifications yet</p>
+        <p className="text-sm">
+          We'll let you know when something new comes up.
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-md shadow-sm overflow-hidden">
-      <div className="flex justify-between items-center p-4 border-b">
-        <h2 className="text-lg font-semibold">Notifications</h2>
+    <div>
+      <div className="flex justify-between items-center px-6 py-4 border-b border-nord5">
+        <h2 className="text-lg font-semibold text-nord1">
+          Recent Notifications
+        </h2>
         <button
           onClick={markAllAsRead}
-          className="text-sm text-blue-600 hover:text-blue-800 flex items-center"
+          className="text-sm text-nord9 hover:text-nord10 flex items-center"
+          disabled={notifications.every((n) => n.isRead)}
         >
-          <FiCheck className="mr-1" />
+          <FiCheck className="mr-1.5" />
           Mark all as read
         </button>
       </div>
 
-      <ul className="divide-y divide-gray-100 max-h-[500px] overflow-y-auto">
+      <ul className="divide-y divide-nord5 max-h-[60vh] overflow-y-auto">
         {notifications.map((notification) => (
           <li
             key={notification._id}
-            className={`p-4 hover:bg-gray-50 transition duration-150 ${
-              !notification.isRead ? "bg-blue-50" : ""
+            className={`p-4 hover:bg-nord6/50 transition duration-150 cursor-pointer ${
+              !notification.isRead ? "bg-nord10/5" : ""
             }`}
+            onClick={() => {
+              if (notification.event) {
+                navigateToEvent(notification.event._id);
+              }
+              if (!notification.isRead) {
+                markAsRead(notification._id);
+              }
+            }}
           >
             <div className="flex items-start">
-              <div className="flex-shrink-0 mr-3 mt-1">
+              <div className="flex-shrink-0 mr-4 mt-1">
                 {getNotificationIcon(notification.type)}
               </div>
 
-              <div className="flex-grow">
-                <div
-                  className="cursor-pointer"
-                  onClick={() => {
-                    if (notification.event && !notification.isRead) {
-                      markAsRead(notification._id);
-                    }
-                    if (notification.event) {
-                      navigateToEvent(notification.event._id);
-                    }
-                  }}
+              <div className="flex-grow min-w-0">
+                <p
+                  className={`text-sm text-nord1 ${
+                    !notification.isRead ? "font-semibold" : "text-nord2"
+                  }`}
                 >
-                  <p
-                    className={`text-sm ${
-                      !notification.isRead ? "font-semibold" : ""
-                    }`}
-                  >
-                    {notification.message}
-                  </p>
+                  {notification.message}
+                </p>
 
-                  {notification.event && (
-                    <div className="mt-1 text-xs text-gray-500">
-                      <p>Event: {notification.event.title}</p>
-                      <p>
-                        Date:{" "}
-                        {new Date(notification.event.date).toLocaleDateString()}{" "}
-                        at {notification.event.time}
-                      </p>
-                    </div>
-                  )}
+                {notification.event && (
+                  <div className="mt-1 text-xs text-nord3">
+                    <p className="truncate">
+                      Event: {notification.event.title}
+                    </p>
+                    <p>
+                      Date:{" "}
+                      {new Date(notification.event.date).toLocaleDateString()}{" "}
+                      at {notification.event.time}
+                    </p>
+                  </div>
+                )}
 
-                  <p className="text-xs text-gray-400 mt-1">
-                    {formatDate(notification.createdAt)}
-                  </p>
-                </div>
+                <p className="text-xs text-nord3 mt-1">
+                  {formatTimeAgo(notification.createdAt)}
+                </p>
               </div>
 
               {!notification.isRead && (
-                <button
-                  onClick={() => markAsRead(notification._id)}
-                  className="flex-shrink-0 ml-2 text-blue-500 hover:text-blue-700"
-                  title="Mark as read"
-                >
-                  <FiCheck />
-                </button>
+                <div className="ml-2 mt-0.5 flex-shrink-0">
+                  <div className="w-2.5 h-2.5 bg-nord9 rounded-full"></div>
+                </div>
               )}
             </div>
           </li>

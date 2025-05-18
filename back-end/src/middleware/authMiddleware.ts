@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { Session } from "express-session";
 import mongoose from "mongoose";
+import user from "../models/user";
 
 // Extend the session interface to include our user property
 declare module "express-session" {
@@ -28,7 +29,8 @@ export const isAuthenticated = (
     next();
   } else {
     // User is not authenticated
-    res.status(401).json({ message: "Not authenticated" });
+    console.log(req.session.user);
+    res.status(401).json({ message: "Not authenticated idiot" });
   }
 };
 

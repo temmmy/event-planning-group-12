@@ -32,16 +32,6 @@ const Navbar: React.FC = () => {
           {/* Left Navigation Links */}
           <div className="flex items-center space-x-8">
             <NavLink
-              to="/"
-              className={({ isActive }) =>
-                `text-sm font-medium transition-colors ${
-                  isActive ? "text-nord10" : "text-nord2 hover:text-nord10"
-                }`
-              }
-            >
-              Home
-            </NavLink>
-            <NavLink
               to="/events"
               className={({ isActive }) =>
                 `text-sm font-medium transition-colors ${
@@ -89,17 +79,6 @@ const Navbar: React.FC = () => {
               </>
             ) : (
               <>
-                <NavLink
-                  to="/dashboard"
-                  className={({ isActive }) =>
-                    `text-sm font-medium transition-colors ${
-                      isActive ? "text-nord10" : "text-nord2 hover:text-nord10"
-                    }`
-                  }
-                >
-                  Dashboard
-                </NavLink>
-
                 {/* Notifications Dropdown */}
                 <NotificationsDropdown />
 
@@ -183,17 +162,6 @@ const Navbar: React.FC = () => {
       >
         <div className="container mx-auto pt-4 pb-6 space-y-4">
           <NavLink
-            to="/"
-            onClick={() => setIsMobileMenuOpen(false)}
-            className={({ isActive }) =>
-              `block px-2 py-2 text-sm font-medium transition-colors ${
-                isActive ? "text-nord10" : "text-nord2 hover:text-nord10"
-              }`
-            }
-          >
-            Home
-          </NavLink>
-          <NavLink
             to="/events"
             onClick={() => setIsMobileMenuOpen(false)}
             className={({ isActive }) =>
@@ -230,18 +198,6 @@ const Navbar: React.FC = () => {
             </>
           ) : (
             <>
-              <NavLink
-                to="/dashboard"
-                onClick={() => setIsMobileMenuOpen(false)}
-                className={({ isActive }) =>
-                  `block px-2 py-2 text-sm font-medium transition-colors ${
-                    isActive ? "text-nord10" : "text-nord2 hover:text-nord10"
-                  }`
-                }
-              >
-                Dashboard
-              </NavLink>
-
               {/* Notifications Dropdown for mobile */}
               <NotificationsDropdown />
 
@@ -262,7 +218,7 @@ const Navbar: React.FC = () => {
 
               <button
                 onClick={handleLogout}
-                className="block w-full text-left px-2 py-2 text-sm font-medium text-nord2 hover:text-nord10 transition-colors"
+                className="block w-full text-center px-2 py-2 text-sm font-medium text-nord2 hover:text-nord10 transition-colors"
               >
                 Logout
               </button>

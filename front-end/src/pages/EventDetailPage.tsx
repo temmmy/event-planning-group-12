@@ -21,12 +21,21 @@ import {
   FiShare2,
   FiAlertCircle,
   FiX,
+  FiMessageSquare,
 } from "react-icons/fi";
-import { formatDate, getRelativeTimeDescription } from "../utils/dateUtils";
+import {
+  formatDate,
+  getRelativeTimeDescription,
+  formatTime,
+} from "../utils/dateUtils";
 import InviteUserModal, {
   InviteButton,
 } from "../components/Events/InviteUserModal";
 import ReminderConfig from "../components/Events/ReminderConfig";
+import EventRSVP from "../components/Events/EventRSVP";
+import DiscussionBoard from "../components/Discussion/DiscussionBoard";
+import JoinRequestButton from "../components/Events/JoinRequestButton";
+import JoinRequestsManager from "../components/Events/JoinRequestsManager";
 
 const EventDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -282,16 +291,27 @@ const EventDetailPage: React.FC = () => {
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
 
-                {/* Event Details Grid */}
-                <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Event Details Section */}
+            <div className="mt-8">
+              <h3 className="text-xl font-semibold text-nord1 mb-4 flex items-center">
+                <FiMapPin className="mr-2" />
+                Event Details
+              </h3>
+
+              <div className="bg-nord6/50 rounded-lg border border-nord5 p-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                   {/* Date */}
                   <div className="flex items-start">
-                    <div className="mt-1 mr-3 text-nord9">
-                      <FiCalendar size={18} />
+                    <div className="text-nord9 mt-0.5 mr-3 flex-shrink-0">
+                      <FiCalendar size={16} />
                     </div>
                     <div>
-                      <p className="text-sm text-nord3 font-medium">Date</p>
+                      <p className="text-sm text-nord3 font-medium text-left">
+                        Date
+                      </p>
                       <p className="text-nord1">
                         {formatDate(new Date(currentEvent.date))}
                       </p>
@@ -300,56 +320,115 @@ const EventDetailPage: React.FC = () => {
 
                   {/* Time */}
                   <div className="flex items-start">
-                    <div className="mt-1 mr-3 text-nord9">
-                      <FiClock size={18} />
+                    <div className="text-nord9 mt-0.5 mr-3 flex-shrink-0">
+                      <FiClock size={16} />
                     </div>
                     <div>
-                      <p className="text-sm text-nord3 font-medium">Time</p>
-                      <p className="text-nord1">{currentEvent.time}</p>
+                      <p className="text-sm text-nord3 font-medium text-left">
+                        Time
+                      </p>
+                      <p className="text-nord1">
+                        {formatTime(currentEvent.time)}
+                      </p>
                     </div>
                   </div>
 
                   {/* Location */}
                   <div className="flex items-start">
-                    <div className="mt-1 mr-3 text-nord9">
-                      <FiMapPin size={18} />
+                    <div className="text-nord9 mt-0.5 mr-3 flex-shrink-0">
+                      <FiMapPin size={16} />
                     </div>
                     <div>
-                      <p className="text-sm text-nord3 font-medium">Location</p>
-                      <p className="text-nord1">{currentEvent.location}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Capacity if available */}
-                {currentEvent.capacity > 0 && (
-                  <div className="mt-4 flex items-start">
-                    <div className="mt-1 mr-3 text-nord9">
-                      <FiUsers size={18} />
-                    </div>
-                    <div>
-                      <p className="text-sm text-nord3 font-medium">Capacity</p>
-                      <p className="text-nord1">
-                        {currentEvent.attendees.length} /{" "}
-                        {currentEvent.capacity} attendees
+                      <p className="text-sm text-nord3 font-medium text-left">
+                        Location
+                      </p>
+                      <p className="text-nord1 break-words">
+                        {currentEvent.location}
                       </p>
                     </div>
                   </div>
-                )}
+
+                  {/* Capacity */}
+                  {currentEvent.capacity > 0 && (
+                    <div className="flex items-start">
+                      <div className="text-nord9 mt-0.5 mr-3 flex-shrink-0">
+                        <FiUsers size={16} />
+                      </div>
+                      <div>
+                        <p className="text-sm text-nord3 font-medium text-left">
+                          Capacity
+                        </p>
+                        <p className="text-nord1">
+                          {currentEvent.attendees.length} /{" "}
+                          {currentEvent.capacity} attendees
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
             {/* Event Description */}
-            <div className="mt-8 prose prose-nord max-w-none">
-              <h3 className="text-xl font-medium text-nord1 mb-3">
+            <div className="mt-8">
+              <h3 className="text-xl font-semibold text-nord1 mb-3 flex items-center">
+                <FiMessageSquare className="mr-2" />
                 Description
               </h3>
               <div className="bg-nord6/50 rounded-lg p-4 border border-nord5">
-                <p className="whitespace-pre-line">
+                <p className="text-left text-nord1 whitespace-pre-line">
                   {currentEvent.description}
                 </p>
               </div>
             </div>
+
+            {/* RSVP Section - Show only if user is invited and is not the organizer */}
+            {currentEvent.isUserInvited && !isOrganizer && (
+              <div className="mt-8">
+                <h3 className="text-xl font-semibold text-nord1 mb-4 flex items-center">
+                  <FiCalendar className="mr-2" />
+                  Your Invitation
+                </h3>
+                <div className="bg-nord6/50 rounded-lg border border-nord5 p-4">
+                  <EventRSVP
+                    eventId={currentEvent._id}
+                    status={currentEvent.userInvitationStatus}
+                    displayStyle="both"
+                    onSuccess={() => {
+                      if (id) {
+                        dispatch(fetchEventById(id));
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Join Request Button - Show for public events if user is not already involved */}
+            {currentEvent.visibility === "public" &&
+              currentUser &&
+              !isOrganizer &&
+              !currentEvent.isUserInvited && (
+                <div className="mt-6 p-4 bg-nord6 rounded-lg border border-nord5">
+                  <h3 className="font-semibold text-nord1 mb-3">
+                    Join This Event
+                  </h3>
+                  <p className="text-nord3 mb-4">
+                    This is a public event. You can request to join, and the
+                    organizer will review your request.
+                  </p>
+                  <JoinRequestButton
+                    eventId={currentEvent._id}
+                    eventTitle={currentEvent.title}
+                    onSuccess={() => {
+                      if (id) {
+                        dispatch(fetchEventById(id));
+                      }
+                    }}
+                    className="w-full sm:w-auto"
+                  />
+                </div>
+              )}
 
             {/* Attendees Section */}
             <div className="mt-8">
@@ -364,7 +443,7 @@ const EventDetailPage: React.FC = () => {
 
               {/* No attendees placeholder */}
               {currentEvent.attendees.length === 0 ? (
-                <div className="text-center py-8 bg-nord6/50 rounded-lg border border-nord5">
+                <div className="text-center flex flex-col items-center  py-8 bg-nord6/50 rounded-lg border border-nord5">
                   <p className="text-nord3">
                     No one has joined this event yet.
                   </p>
@@ -400,6 +479,22 @@ const EventDetailPage: React.FC = () => {
                         <p className="text-xs text-nord3 truncate">
                           {attendee.email}
                         </p>
+                        {attendee.status && (
+                          <p
+                            className={`text-xs ${
+                              attendee.status === "accepted"
+                                ? "text-green-600"
+                                : attendee.status === "requested"
+                                ? "text-orange-500"
+                                : attendee.status === "declined"
+                                ? "text-red-500"
+                                : "text-gray-500"
+                            }`}
+                          >
+                            {attendee.status.charAt(0).toUpperCase() +
+                              attendee.status.slice(1)}
+                          </p>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -414,10 +509,32 @@ const EventDetailPage: React.FC = () => {
               )}
             </div>
 
+            {/* Join Requests Manager - For organizers and admins */}
+            {canManageEvent && (
+              <div className="mt-8 border-t border-gray-100 pt-8">
+                <h3 className="text-xl font-semibold text-nord1 mb-4 flex items-center">
+                  <FiUsers className="mr-2" />
+                  Join Requests
+                </h3>
+                <JoinRequestsManager
+                  eventId={currentEvent._id}
+                  requests={currentEvent.attendees.filter(
+                    (attendee) => attendee.status === "requested"
+                  )}
+                  onSuccess={() => {
+                    if (id) {
+                      dispatch(fetchEventById(id));
+                    }
+                  }}
+                />
+              </div>
+            )}
+
             {/* Reminder Configuration Section for Organizers */}
             {isOrganizer && (
               <div className="mt-8 border-t border-gray-100 pt-8">
-                <h3 className="text-xl font-semibold text-nord1 mb-4">
+                <h3 className="text-xl font-semibold text-nord1 mb-4 flex items-center">
+                  <FiClock className="mr-2" />
                   Event Notifications
                 </h3>
                 <p className="text-nord3 mb-6">
@@ -437,6 +554,21 @@ const EventDetailPage: React.FC = () => {
                 />
               </div>
             )}
+
+            {/* Discussion Board */}
+            <div className="mt-8 border-t border-gray-100 pt-8">
+              <h3 className="text-xl font-semibold text-nord1 mb-4 flex items-center">
+                <FiMessageSquare className="mr-2" />
+                Discussion
+              </h3>
+              <p className="text-nord3 mb-6">
+                Join the conversation about this event. Ask questions, share
+                thoughts, or connect with other attendees.
+              </p>
+              {currentEvent._id && (
+                <DiscussionBoard eventId={currentEvent._id} />
+              )}
+            </div>
           </div>
         </div>
       </div>
