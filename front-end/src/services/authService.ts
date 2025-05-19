@@ -1,3 +1,10 @@
+// RMIT University Vietnam
+//   Course: COSC2769 Full Stack Development
+//   Semester: 2025A
+//   Assessment: Assignment 3
+//   Author: GROUP 12
+//   Student Name: Nguyen Chi Nghia, Nguyen Bao Hoang, Minh Tran Quang, Hieu Nguyen Minh
+
 import axios from "axios";
 
 // Define the base URL for your backend API
@@ -8,7 +15,7 @@ const API_BASE_URL =
 // Create an Axios instance with default configuration
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  withCredentials: true, // Crucial for sending session cookies!
+  withCredentials: true, // Crucial for sending session cookies
   headers: {
     "Content-Type": "application/json",
   },

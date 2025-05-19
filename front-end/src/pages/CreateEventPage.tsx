@@ -1,6 +1,12 @@
+// RMIT University Vietnam
+//   Course: COSC2769 Full Stack Development
+//   Semester: 2025A
+//   Assessment: Assignment 3
+//   Author: GROUP 12
+//   Student Name: Nguyen Chi Nghia, Nguyen Bao Hoang, Minh Tran Quang, Hieu Nguyen Minh
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAppDispatch, useAppSelector } from "../store/hooks";
 import {
   createEvent,
   selectEventsLoading,
@@ -8,6 +14,7 @@ import {
 } from "../features/events/eventsSlice";
 import EventForm from "../components/Events/EventForm";
 import { FiArrowLeft, FiAlertCircle } from "react-icons/fi";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
 
 const CreateEventPage: React.FC = () => {
   const navigate = useNavigate();
