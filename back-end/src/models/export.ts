@@ -5,10 +5,10 @@ const Schema = mongoose.Schema;
 const User = require("../models/user");
 const SystemSettings = require("../models/settings");
 const Event_ = require("../models/event");
-const Invitation = mongoose.model("Invitation", InvitationSchema);
-const Discussion = mongoose.model("Discussion", DiscussionSchema);
+const Invitation = require("../models/invitation");
+const Discussion = require("../models/discussion");
 const Notification_ = require("../models/notification");
-const Statistics = mongoose.model("Statistics", StatisticsSchema);
+const Statistics = require("../models/statistics");
 
 module.exports = {
   User,

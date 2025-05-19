@@ -265,10 +265,7 @@ function App() {
                 />
 
                 {/* Default Route - Redirect based on authentication */}
-                <Route
-                  path="/"
-                  element={<Navigate to="/auth-success" replace />}
-                />
+                <Route path="/" element={<Navigate to="/login" replace />} />
 
                 {/* Catch all - redirect to login */}
                 <Route path="*" element={<Navigate to="/login" replace />} />

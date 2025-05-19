@@ -24,7 +24,6 @@ const colorPalette = [
   "#d08770", // Nord12 (orange)
   "#bf616a", // Nord11 (red)
   "#5e81ac", // Nord10 (blue)
-  "#eceff4", // Nord6 (white)
 ];
 
 interface EventFormProps {
@@ -253,11 +252,8 @@ const EventForm: React.FC<EventFormProps> = ({
 
             {/* Color picker popover */}
             {isColorPickerOpen && (
-              <div className="absolute right-0 bottom-12 bg-white rounded-lg shadow-lg p-3 z-10 border border-gray-200">
-                <h4 className="text-xs font-medium text-nord3 mb-2">
-                  Background Color
-                </h4>
-                <div className="grid grid-cols-4 gap-3">
+              <div className="absolute w-30 right-0 bottom-12 bg-white rounded-lg shadow-lg p-3 z-10 border border-gray-200">
+                <div className="grid grid-cols-4 gap-2">
                   {colorPalette.map((color) => (
                     <button
                       key={color}
@@ -265,7 +261,7 @@ const EventForm: React.FC<EventFormProps> = ({
                         setBackgroundColor(color);
                         setIsColorPickerOpen(false);
                       }}
-                      className={`w-9 h-9 rounded-full cursor-pointer hover:opacity-80 transition-all transform hover:scale-110 ${
+                      className={`w-6 h-6 rounded-full cursor-pointer hover:opacity-80 transition-all transform hover:scale-110 ${
                         backgroundColor === color
                           ? "ring-2 ring-offset-2 ring-nord10"
                           : ""
@@ -366,7 +362,7 @@ const EventForm: React.FC<EventFormProps> = ({
                   <div className="flex-1">
                     <label
                       htmlFor="event-date"
-                      className="block text-sm font-medium text-nord3 mb-1"
+                      className="block text-md font-semibold text-left  text-nord3 mb-1"
                     >
                       Date
                     </label>
@@ -389,7 +385,7 @@ const EventForm: React.FC<EventFormProps> = ({
                   <div className="flex-1">
                     <label
                       htmlFor="event-time"
-                      className="block text-sm font-medium text-nord3 mb-1"
+                      className="block text-md font-semibold text-left  text-nord3 mb-1"
                     >
                       Time
                     </label>
@@ -415,7 +411,7 @@ const EventForm: React.FC<EventFormProps> = ({
                   <div className="flex-1">
                     <label
                       htmlFor="event-location"
-                      className="block text-sm font-medium text-nord3 mb-1"
+                      className="block text-md font-semibold text-left  text-nord3 mb-1"
                     >
                       Location
                     </label>
@@ -439,7 +435,7 @@ const EventForm: React.FC<EventFormProps> = ({
                   <div className="flex-1">
                     <label
                       htmlFor="event-capacity"
-                      className="block text-sm font-medium text-nord3 mb-1"
+                      className="block text-md font-semibold text-left  text-nord3 mb-1"
                     >
                       Capacity (optional)
                     </label>
@@ -468,7 +464,7 @@ const EventForm: React.FC<EventFormProps> = ({
               </div>
 
               <div className="flex-1">
-                <label className="block text-sm font-medium text-nord3 mb-2">
+                <label className="block text-md font-semibold text-left  text-nord3 mb-2">
                   Visibility
                 </label>
 
@@ -510,7 +506,7 @@ const EventForm: React.FC<EventFormProps> = ({
             <div className="mt-8">
               <label
                 htmlFor="event-description"
-                className="block text-sm font-medium text-nord3 mb-2"
+                className="block text-md font-semibold text-left  text-nord3 mb-2"
               >
                 Description
               </label>

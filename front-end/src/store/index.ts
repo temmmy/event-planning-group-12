@@ -1,6 +1,5 @@
 import { configureStore } from "@reduxjs/toolkit";
 // Import your reducers here
-import counterReducer from "../features/counter/counterSlice";
 import authReducer from "../features/auth/authSlice";
 import settingsReducer from "../features/settings/settingsSlice";
 import eventsReducer from "../features/events/eventsSlice";
@@ -10,7 +9,6 @@ import discussionsReducer from "../features/discussions/discussionSlice";
 export const store = configureStore({
   reducer: {
     // Add reducers here
-    counter: counterReducer,
     auth: authReducer,
     settings: settingsReducer,
     events: eventsReducer,
