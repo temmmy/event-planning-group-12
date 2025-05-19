@@ -190,18 +190,6 @@ function App() {
                 <Route path="/register" element={<RegistrationPage />} />
                 <Route path="/auth-success" element={<LoginSuccessHandler />} />
 
-                {/* Protected Routes - Example: Dashboard - REMOVED */}
-                {/*
-                <Route
-                  path="/dashboard"
-                  element={
-                    <ProtectedRoute>
-                      <PlaceholderPage title="Dashboard" />
-                    </ProtectedRoute>
-                  }
-                />
-                */}
-
                 {/* Event Routes */}
                 <Route
                   path="/events"

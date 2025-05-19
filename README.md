@@ -2,6 +2,16 @@
 
 An event planning application built with the MERN stack (MongoDB, Express.js, React, Node.js) with TypeScript, allowing users to create, manage, and participate in events.
 
+Link to Github Repository - https://github.com/temmmy/event-planning-group-12
+Link to Youtube Presentation -
+
+## Contribution Score
+
+- Nguyen Chi Nghia s3979170 - 7
+- Nguyen Bao Hoang s3978685 - 7
+- Minh Tran Quang s4020220 - 3
+- Hieu Nguyen Minh s3914580 - 3
+
 ## Features
 
 ### User Management
@@ -68,8 +78,8 @@ The project is divided into two main parts:
 1. Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/nikiplan.git
-cd nikiplan
+git clone https://github.com/temmmy/event-planning-group-12
+cd event-planning-group-12
 ```
 
 2. Install backend dependencies

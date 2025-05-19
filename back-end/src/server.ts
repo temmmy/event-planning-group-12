@@ -54,13 +54,12 @@ app.use(
       secure: process.env.NODE_ENV === "production", // Use secure cookies in production (HTTPS)
       httpOnly: true, // Prevent client-side JS from accessing the cookie
       maxAge: 1000 * 60 * 60 * 24 * 7, // Session expiry time (e.g., 7 days)
-      // sameSite: 'lax' // Consider 'lax' or 'strict' for CSRF protection
     },
   })
 );
 
 // --- Middleware ---
-// Enable CORS - Adjust origins for production!
+// Enable CORS - Adjust origins
 app.use(
   cors({
     origin: process.env.CORS_ORIGIN || "http://localhost:5173", // Default to common Vite port
