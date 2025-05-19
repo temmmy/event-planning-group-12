@@ -26,6 +26,7 @@ import Navbar from "./components/Layout/Navbar";
 import Footer from "./components/Layout/Footer";
 import LoadingScreen from "./components/Common/LoadingScreen";
 // Import page components
+import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import RegistrationPage from "./pages/RegistrationPage";
 import AdminSettingsPage from "./pages/AdminSettingsPage";
@@ -174,6 +175,9 @@ function App() {
   // Use a more reliable approach to determine when to show loading screen
   const showLoadingScreen = !appInitialized || !initialLoadComplete;
 
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const user = useAppSelector(selectUser);
+
   return (
     <>
       {/* Keep loading screen outside of Router to prevent routing during transitions */}
@@ -192,6 +196,21 @@ function App() {
               )}
 
               <Routes>
+                {/* Root Route: Shows LandingPage or redirects if authenticated */}
+                <Route
+                  path="/"
+                  element={
+                    isAuthenticated ? (
+                      user?.role === 'admin' ? (
+                        <Navigate to="/admin/settings" replace />
+                      ) : (
+                        <Navigate to="/events" replace />
+                      )
+                    ) : (
+                      <LandingPage />
+                    )
+                  }
+                />
                 {/* Public Routes */}
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegistrationPage />} />
