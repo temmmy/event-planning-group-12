@@ -319,55 +319,27 @@ export const createEvent = async (
     }
 
     // Handle file uploads
-    let image = "default-event.png";
+    let image = "default-event.png"; // Default if no image is uploaded
     let coverImage = "";
     let backgroundColor = req.body.backgroundColor || "";
 
     if (req.files) {
       const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
-      // Handle profile image upload
+      // Handle event's main image upload
       if (files.image && files.image.length > 0) {
         const imageFile = files.image[0];
-        const imageFileName = `${userId}-${Date.now()}-${path.basename(
-          imageFile.originalname
-        )}`;
-        const imagePath = path.join(
-          __dirname,
-          "../../uploads/events",
-          imageFileName
-        );
-
-        // Ensure directory exists
-        const dir = path.dirname(imagePath);
-        if (!fs.existsSync(dir)) {
-          fs.mkdirSync(dir, { recursive: true });
-        }
-
-        fs.writeFileSync(imagePath, imageFile.buffer);
-        image = imageFileName;
+        // With DiskStorage, multer has already saved the file.
+        // imageFile.filename contains the name of the file in the destination directory.
+        image = imageFile.filename;
       }
 
       // Handle cover image upload
       if (files.coverImage && files.coverImage.length > 0) {
         const coverFile = files.coverImage[0];
-        const coverFileName = `cover-${userId}-${Date.now()}-${path.basename(
-          coverFile.originalname
-        )}`;
-        const coverPath = path.join(
-          __dirname,
-          "../../uploads/events",
-          coverFileName
-        );
-
-        // Ensure directory exists
-        const dir = path.dirname(coverPath);
-        if (!fs.existsSync(dir)) {
-          fs.mkdirSync(dir, { recursive: true });
-        }
-
-        fs.writeFileSync(coverPath, coverFile.buffer);
-        coverImage = coverFileName;
+        // With DiskStorage, multer has already saved the file.
+        // coverFile.filename contains the name of the file in the destination directory.
+        coverImage = coverFile.filename;
       }
     }
 
