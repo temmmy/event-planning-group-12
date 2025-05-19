@@ -2,8 +2,8 @@
 
 An event planning application built with the MERN stack (MongoDB, Express.js, React, Node.js) with TypeScript, allowing users to create, manage, and participate in events.
 
-Link to Github Repository - https://github.com/temmmy/event-planning-group-12
-Link to Youtube Presentation -
+- Link to Github Repository - https://github.com/temmmy/event-planning-group-12
+- Link to Youtube Presentation - https://youtu.be/STpTCQaImrY
 
 ## Contribution Score
 
