@@ -8,9 +8,8 @@ An event planning application built with the MERN stack (MongoDB, Express.js, Re
 ## Contribution Score
 
 - Nguyen Chi Nghia s3979170 - 7
-- Nguyen Bao Hoang s3978685 - 7
+- Nguyen Bao Hoang s3978685 - 5
 - Minh Tran Quang s4020220 - 3
-- Hieu Nguyen Minh s3914580 - 3
 
 ## Features
 
