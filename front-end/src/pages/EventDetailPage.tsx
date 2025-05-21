@@ -29,20 +29,51 @@ import {
   FiAlertCircle,
   FiX,
   FiMessageSquare,
+  FiCheckCircle,
+  FiAlertTriangle,
+  FiXCircle,
+  FiUserPlus,
 } from "react-icons/fi";
 import {
   formatDate,
   getRelativeTimeDescription,
   formatTime,
 } from "../utils/dateUtils";
-import InviteUserModal, {
-  InviteButton,
-} from "../components/Events/InviteUserModal";
+import InviteUserModal from "../components/Events/InviteUserModal";
 import ReminderConfig from "../components/Events/ReminderConfig";
 import EventRSVP from "../components/Events/EventRSVP";
 import DiscussionBoard from "../components/Discussion/DiscussionBoard";
 import JoinRequestButton from "../components/Events/JoinRequestButton";
 import JoinRequestsManager from "../components/Events/JoinRequestsManager";
+
+// Nord Color Palette
+const nordColors = {
+  nord0: "#2E3440", nord1: "#3B4252", nord2: "#434C5E", nord3: "#4C566A",
+  nord4: "#D8DEE9", nord5: "#E5E9F0", nord6: "#ECEFF4",
+  nord7: "#8FBCBB", nord8: "#88C0D0", nord9: "#81A1C1", nord10: "#5E81AC",
+  nord11: "#BF616A", nord12: "#D08770", nord13: "#EBCB8B", nord14: "#A3BE8C", nord15: "#B48EAD",
+};
+
+// Custom Invite Button with Nord styling
+const InviteButton: React.FC<{ onClick: () => void; className?: string; children?: React.ReactNode }> = ({ onClick, className = "", children }) => (
+  <button
+    onClick={onClick}
+    className={`group inline-flex items-center justify-center px-4 py-2
+                bg-gradient-to-t from-nord10 to-nord9 text-white
+                shadow-[inset_0px_1px_0px_0px_hsla(207,33%,60%,0.3)]
+                hover:from-nord9 hover:to-nord8
+                hover:-translate-y-0.5 hover:shadow-lg
+                transition-all duration-300 ease-in-out
+                rounded-lg text-sm font-medium ${className}`}
+  >
+    {children || (
+      <>
+        <FiUserPlus className="mr-2 h-4 w-4" />
+        Invite Users
+      </>
+    )}
+  </button>
+);
 
 const EventDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -58,13 +89,11 @@ const EventDetailPage: React.FC = () => {
   const error = useAppSelector(selectEventsError);
   const currentUser = useAppSelector(selectUser);
 
-  // Delete event state
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-
-  // Invite modal state
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [shareFeedback, setShareFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -72,107 +101,85 @@ const EventDetailPage: React.FC = () => {
     }
   }, [dispatch, id]);
 
-  // Check if current user is the organizer or admin
   const isOrganizer =
     currentUser &&
     currentEvent &&
+    currentEvent.organizer &&
     currentUser.id === currentEvent.organizer._id;
 
   const isAdmin = currentUser?.role === "admin";
   const canManageEvent = isOrganizer || isAdmin;
 
-  // Handle delete event
   const handleDeleteConfirm = async () => {
     if (!id) return;
-
+    setDeleteLoading(true);
+    setDeleteError(null);
     try {
-      setDeleteLoading(true);
-      setDeleteError(null);
       await dispatch(deleteEvent(id)).unwrap();
-      navigate("/events");
-    } catch (err) {
-      if (err instanceof Error) {
-        setDeleteError(err.message);
-      } else {
-        setDeleteError("An error occurred while deleting the event");
-      }
+      navigate("/events", { state: { successMessage: "Event deleted successfully." } });
+    } catch (err: any) {
+      setDeleteError(err?.message || "An error occurred while deleting the event.");
       setDeleteLoading(false);
     }
   };
 
-  // Copy event link to clipboard
   const shareEvent = () => {
     const eventUrl = window.location.href;
-    navigator.clipboard
-      .writeText(eventUrl)
+    navigator.clipboard.writeText(eventUrl)
       .then(() => {
-        alert("Event link copied to clipboard!");
+        setShareFeedback("Event link copied to clipboard!");
+        setTimeout(() => setShareFeedback(null), 3000);
       })
       .catch(() => {
-        alert("Failed to copy link. Please try again.");
+        setShareFeedback("Failed to copy link. Please try again.");
+        setTimeout(() => setShareFeedback(null), 3000);
       });
   };
 
-  // If still loading the event
+  const getStatusStyles = (status?: string) => {
+    switch (status?.toLowerCase()) {
+      case "accepted":
+        return { Icon: FiCheckCircle, textColor: "text-nord14", bgColor: "bg-nord14/10", borderColor: "border-nord14/30" };
+      case "requested":
+        return { Icon: FiAlertTriangle, textColor: "text-nord12", bgColor: "bg-nord12/10", borderColor: "border-nord12/30" };
+      case "declined":
+        return { Icon: FiXCircle, textColor: "text-nord11", bgColor: "bg-nord11/10", borderColor: "border-nord11/30" };
+      default:
+        return { Icon: FiUsers, textColor: "text-nord3", bgColor: "bg-nord3/10", borderColor: "border-nord3/30" };
+    }
+  };
+
   if (loading === "pending" && !currentEvent) {
     return (
-      <div className="min-h-screen bg-nord6 p-6 flex justify-center items-center">
-        <div className="flex items-center">
-          <svg
-            className="animate-spin -ml-1 mr-3 h-8 w-8 text-nord9"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle
-              className="opacity-25"
-              cx="12"
-              cy="12"
-              r="10"
-              stroke="currentColor"
-              strokeWidth="4"
-            ></circle>
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            ></path>
+      <div className="min-h-screen bg-nord6 p-6 flex flex-col justify-center items-center text-center">
+        <div className="flex flex-col items-center">
+          <svg className="animate-spin h-12 w-12 text-nord9 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
           </svg>
-          <p className="text-nord10 text-xl">Loading event...</p>
+          <p className="text-nord1 text-lg font-medium">Loading Event Details...</p>
+          <p className="text-nord3 text-sm">Please wait a moment.</p>
         </div>
       </div>
     );
   }
 
-  // If event not found
   if (!currentEvent && loading !== "pending") {
     return (
-      <div className="min-h-screen bg-nord6 p-6">
-        <div className="max-w-4xl mx-auto">
+      <div className="min-h-screen bg-nord6 p-6 flex flex-col justify-center items-center">
+        <div className="max-w-md mx-auto text-center bg-white p-8 rounded-xl shadow-xl border border-nord5">
+          <FiAlertCircle className="mx-auto text-nord11 mb-5" size={56} />
+          <h1 className="text-2xl font-semibold text-nord1 mb-3">Event Not Found</h1>
+          <p className="text-nord3 mb-8">
+            The event you're looking for doesn't exist, may have been moved, or you might not have permission to view it.
+          </p>
           <button
             onClick={() => navigate("/events")}
-            className="flex items-center text-nord3 hover:text-nord10 mb-8"
+            className="group px-6 py-3 bg-nord9 text-white rounded-lg hover:bg-nord10 transition-all duration-300 ease-in-out transform hover:-translate-y-0.5 hover:shadow-lg font-medium flex items-center justify-center"
           >
-            <FiArrowLeft className="mr-2" />
-            Back to events
+            <FiArrowLeft className="mr-2 inline-block transition-transform duration-300 group-hover:-translate-x-1" />
+            Return to Events
           </button>
-
-          <div className="bg-white rounded-xl shadow-sm p-8 text-center">
-            <FiAlertCircle className="mx-auto text-nord11 mb-4" size={48} />
-            <h1 className="text-2xl font-medium text-nord1 mb-2">
-              Event not found
-            </h1>
-            <p className="text-nord3 mb-6">
-              The event you're looking for doesn't exist or you don't have
-              permission to view it.
-            </p>
-            <button
-              onClick={() => navigate("/events")}
-              className="px-4 py-2 bg-nord9 text-white rounded-lg hover:bg-nord10 transition-colors"
-            >
-              Return to events
-            </button>
-          </div>
         </div>
       </div>
     );
@@ -181,400 +188,297 @@ const EventDetailPage: React.FC = () => {
   if (!currentEvent) return null;
 
   return (
-    <div className="min-h-screen bg-nord6 p-4 md:p-6">
+    <div className="min-h-screen bg-nord6 p-4 md:p-8 font-sans">
       <div className="max-w-5xl mx-auto">
-        {/* Back Button */}
         <button
           onClick={() => navigate("/events")}
-          className="flex items-center text-nord3 hover:text-nord10 mb-6 md:mb-8"
+          className="flex items-center text-nord10 hover:text-nord9 mb-6 md:mb-8 group"
         >
-          <FiArrowLeft className="mr-2" />
-          Back to events
+          <FiArrowLeft className="mr-2 h-5 w-5 transition-transform duration-300 group-hover:-translate-x-1" />
+          <span className="font-medium text-sm">Back to All Events</span>
         </button>
 
-        {/* Error message */}
         {error && (
-          <div className="mb-8 p-4 bg-red-50 text-red-700 rounded-lg border border-red-100 flex">
-            <FiAlertCircle className="flex-shrink-0 mt-0.5 mr-3" size={18} />
+          <div className="mb-6 p-4 bg-nord11/10 text-nord11 rounded-lg border border-nord11/30 flex items-start">
+            <FiAlertCircle className="flex-shrink-0 mt-0.5 mr-3 h-5 w-5" />
             <div>
-              <p className="font-medium">Error loading event</p>
-              <p>{error}</p>
+              <p className="font-semibold text-nord0">Error Loading Event Details</p>
+              <p className="text-sm text-nord1">{typeof error === 'string' ? error : JSON.stringify(error)}</p>
             </div>
           </div>
         )}
+        {shareFeedback && (
+          <div className={`fixed top-8 right-8 z-50 p-3 rounded-md shadow-lg text-sm font-medium transition-opacity duration-300 ${shareFeedback.includes("Failed") ? "bg-nord11 text-white" : "bg-nord14 text-nord0"}`}>
+            {shareFeedback}
+          </div>
+        )}
 
-        {/* Main Content Area */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-white rounded-xl shadow-2xl overflow-hidden border border-nord5">
           {/* Cover Image or Background Color */}
           <div
-            className="w-full h-48 md:h-64 bg-cover bg-center relative"
+            className="w-full h-56 md:h-72 bg-cover bg-center relative"
             style={{
-              backgroundColor: currentEvent.backgroundColor || "#eceff4",
-              backgroundImage: currentEvent.coverImageUrl
-                ? `url(${currentEvent.coverImageUrl})`
-                : "none",
+              backgroundColor: currentEvent.backgroundColor || nordColors.nord8,
+              backgroundImage: currentEvent.coverImageUrl ? `url(${currentEvent.coverImageUrl})` : "none",
             }}
           >
-            {/* Visibility Badge */}
+            <div className="absolute inset-0 bg-gradient-to-t from-nord0/50 via-nord0/20 to-transparent"></div>
             <div className="absolute top-4 right-4">
               <span
-                className={`
-                  inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-                  ${
-                    currentEvent.visibility === "private"
-                      ? "bg-nord3 text-white"
-                      : "bg-nord14 text-white"
-                  }
-                `}
+                className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold shadow-md
+                  ${currentEvent.visibility === "private"
+                    ? "bg-nord3 text-nord6"
+                    : "bg-nord14 text-nord0"
+                  }`}
               >
-                {currentEvent.visibility === "private" ? "Private" : "Public"}
+                {currentEvent.visibility === "private" ? "Private Event" : "Public Event"}
               </span>
             </div>
 
-            {/* Action Buttons for Organizer */}
             {canManageEvent && (
-              <div className="absolute bottom-4 right-4 flex space-x-2">
-                <Link
-                  to={`/events/${currentEvent._id}/edit`}
-                  className="flex items-center justify-center p-2 bg-white rounded-lg shadow hover:bg-gray-50 transition-colors"
-                >
-                  <FiEdit2 className="text-nord9" />
-                </Link>
-                <button
-                  onClick={() => setIsDeleteModalOpen(true)}
-                  className="flex items-center justify-center p-2 bg-white rounded-lg shadow hover:bg-gray-50 transition-colors"
-                >
-                  <FiTrash2 className="text-nord11" />
-                </button>
-                <button
-                  onClick={shareEvent}
-                  className="flex items-center justify-center p-2 bg-white rounded-lg shadow hover:bg-gray-50 transition-colors"
-                >
-                  <FiShare2 className="text-nord9" />
-                </button>
+              <div className="absolute bottom-4 right-4 flex space-x-2.5">
+                {[
+                  { to: `/events/${currentEvent._id}/edit`, icon: FiEdit2, label: "Edit Event", color: nordColors.nord9 },
+                  { onClick: () => setIsDeleteModalOpen(true), icon: FiTrash2, label: "Delete Event", color: nordColors.nord11 },
+                  { onClick: shareEvent, icon: FiShare2, label: "Share Event", color: nordColors.nord10 },
+                ].map((action) => (
+                  action.to ? (
+                    <Link
+                      key={action.label}
+                      to={action.to}
+                      title={action.label}
+                      className="flex items-center justify-center p-2.5 bg-nord6/90 backdrop-blur-sm rounded-lg shadow-md hover:bg-nord5 hover:shadow-lg transition-all duration-200"
+                      style={{ color: action.color }}
+                    >
+                      <action.icon size={18} />
+                    </Link>
+                  ) : (
+                    <button
+                      key={action.label}
+                      onClick={action.onClick}
+                      title={action.label}
+                      className="flex items-center justify-center p-2.5 bg-nord6/90 backdrop-blur-sm rounded-lg shadow-md hover:bg-nord5 hover:shadow-lg transition-all duration-200"
+                      style={{ color: action.color }}
+                    >
+                      <action.icon size={18} />
+                    </button>
+                  )
+                ))}
               </div>
             )}
           </div>
 
-          <div className="p-6 md:p-8">
-            <div className="flex flex-col md:flex-row gap-6">
-              {/* Event Image */}
-              <div className="md:mr-6 mb-4 md:mb-0 flex-shrink-0">
-                <div
-                  className="w-20 h-20 rounded-lg bg-nord8 flex items-center justify-center overflow-hidden"
-                  style={{
-                    backgroundColor: currentEvent.backgroundColor || "#88c0d0",
-                  }}
-                >
-                  {currentEvent.imageUrl ? (
-                    <img
-                      src={currentEvent.imageUrl}
-                      alt={currentEvent.title}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-3xl text-white">
-                      {currentEvent.title.charAt(0)}
-                    </span>
-                  )}
-                </div>
+          {/* Main Content Area */}
+          <div className="p-6 md:p-10">
+            {/* Event Header: Icon, Title, Date */}
+            <div className="flex flex-col md:flex-row gap-6 md:gap-8 items-start mb-8">
+              <div
+                className="w-24 h-24 md:w-28 md:h-28 rounded-xl flex-shrink-0 flex items-center justify-center overflow-hidden shadow-lg border-4 border-white"
+                style={{ backgroundColor: currentEvent.backgroundColor || nordColors.nord7 }}
+              >
+                {currentEvent.imageUrl && currentEvent.imageUrl !== "/uploads/events/default-event.png" ? (
+                  <img src={currentEvent.imageUrl} alt={currentEvent.title} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-4xl md:text-5xl text-white font-bold">{currentEvent.title.charAt(0).toUpperCase()}</span>
+                )}
               </div>
-
-              {/* Event Title and Date */}
-              <div className="flex-grow">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-                  <h1 className="text-3xl md:text-4xl font-garamond font-bold text-nord1 leading-tight">
+              <div className="flex-grow pt-1">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-1">
+                  <h1 className="text-3xl md:text-4xl font-garamond font-bold text-nord1 leading-tight mb-1 sm:mb-0">
                     {currentEvent.title}
                   </h1>
-
-                  <div className="mt-2 md:mt-0 md:ml-4 md:text-right">
-                    <div className="inline-flex items-center text-nord10 bg-nord10/10 px-3 py-1 rounded-full">
-                      <FiCalendar className="mr-2" />
-                      <span className="text-sm font-medium">
-                        {getRelativeTimeDescription(
-                          new Date(currentEvent.date)
-                        )}
-                      </span>
+                  <div className="mt-2 sm:mt-0 sm:ml-4 sm:text-right">
+                    <div className="inline-flex items-center text-nord10 bg-nord10/10 px-3.5 py-1.5 rounded-full">
+                      <FiCalendar className="mr-2 h-4 w-4" />
+                      <span className="text-sm font-medium">{getRelativeTimeDescription(new Date(currentEvent.date))}</span>
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
-
-            {/* Event Details Section */}
-            <div className="mt-8">
-              <h3 className="text-xl font-semibold text-nord1 mb-4 flex items-center">
-                <FiMapPin className="mr-2" />
-                Event Details
-              </h3>
-
-              <div className="bg-nord6/50 rounded-lg border border-nord5 p-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                  {/* Date */}
-                  <div className="flex items-start">
-                    <div className="text-nord9 mt-0.5 mr-3 flex-shrink-0">
-                      <FiCalendar size={16} />
-                    </div>
-                    <div>
-                      <p className="text-sm text-nord3 font-medium text-left">
-                        Date
-                      </p>
-                      <p className="text-nord1">
-                        {formatDate(new Date(currentEvent.date))}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Time */}
-                  <div className="flex items-start">
-                    <div className="text-nord9 mt-0.5 mr-3 flex-shrink-0">
-                      <FiClock size={16} />
-                    </div>
-                    <div>
-                      <p className="text-sm text-nord3 font-medium text-left">
-                        Time
-                      </p>
-                      <p className="text-nord1">
-                        {formatTime(currentEvent.time)}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Location */}
-                  <div className="flex items-start">
-                    <div className="text-nord9 mt-0.5 mr-3 flex-shrink-0">
-                      <FiMapPin size={16} />
-                    </div>
-                    <div>
-                      <p className="text-sm text-nord3 font-medium text-left">
-                        Location
-                      </p>
-                      <p className="text-nord1 break-words">
-                        {currentEvent.location}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Capacity */}
-                  {currentEvent.capacity > 0 && (
-                    <div className="flex items-start">
-                      <div className="text-nord9 mt-0.5 mr-3 flex-shrink-0">
-                        <FiUsers size={16} />
-                      </div>
-                      <div>
-                        <p className="text-sm text-nord3 font-medium text-left">
-                          Capacity
-                        </p>
-                        <p className="text-nord1">
-                          {currentEvent.attendees.length} /{" "}
-                          {currentEvent.capacity} attendees
-                        </p>
-                      </div>
-                    </div>
+                <p className="text-nord3 text-base">
+                  Organized by:{" "}
+                  {currentEvent.organizer?.name ? (
+                    <Link to={`/user/${currentEvent.organizer._id}`} className="font-medium text-nord10 hover:underline">
+                      {currentEvent.organizer.name}
+                    </Link>
+                  ) : (
+                    <span className="italic text-nord3">Unknown Organizer</span>
                   )}
-                </div>
-              </div>
-            </div>
-
-            {/* Event Description */}
-            <div className="mt-8">
-              <h3 className="text-xl font-semibold text-nord1 mb-3 flex items-center">
-                <FiMessageSquare className="mr-2" />
-                Description
-              </h3>
-              <div className="bg-nord6/50 rounded-lg p-4 border border-nord5">
-                <p className="text-left text-nord1 whitespace-pre-line">
-                  {currentEvent.description}
                 </p>
               </div>
             </div>
 
-            {/* RSVP Section - Show only if user is invited and is not the organizer */}
-            {currentEvent.isUserInvited && !isOrganizer && (
-              <div className="mt-8">
+            {/* Sections Wrapper */}
+            <div className="space-y-10">
+              {/* Event Details Section */}
+              <section>
                 <h3 className="text-xl font-semibold text-nord1 mb-4 flex items-center">
-                  <FiCalendar className="mr-2" />
-                  Your Invitation
+                  <FiMapPin className="mr-2.5 h-5 w-5 text-nord9" />
+                  Event Information
                 </h3>
-                <div className="bg-nord6/50 rounded-lg border border-nord5 p-4">
-                  <EventRSVP
-                    eventId={currentEvent._id}
-                    status={currentEvent.userInvitationStatus}
-                    displayStyle="both"
-                    onSuccess={() => {
-                      if (id) {
-                        dispatch(fetchEventById(id));
-                      }
-                    }}
-                  />
+                <div className="bg-nord6/60 rounded-lg border border-nord5 p-5 md:p-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-6">
+                    {[
+                      { icon: FiCalendar, label: "Date", value: formatDate(new Date(currentEvent.date)) },
+                      { icon: FiClock, label: "Time", value: formatTime(currentEvent.time) },
+                      { icon: FiMapPin, label: "Location", value: currentEvent.location, fullWidth: currentEvent.location.length > 35 },
+                      currentEvent.capacity > 0 && { icon: FiUsers, label: "Capacity", value: `${currentEvent.attendees.length} / ${currentEvent.capacity} spots` },
+                    ].filter(Boolean).map((item: any, index) => (
+                      <div key={index} className={`flex items-start ${item.fullWidth ? 'sm:col-span-2' : ''}`}>
+                        <div className="text-nord9 mt-0.5 mr-3.5 flex-shrink-0 p-2 bg-nord9/10 rounded-full">
+                          <item.icon size={16} />
+                        </div>
+                        <div>
+                          <p className="text-xs text-nord3 font-semibold uppercase tracking-wider">{item.label}</p>
+                          <p className="text-nord1 font-medium text-base break-words">{item.value}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              </section>
 
-            {/* Join Request Button - Show for public events if user is not already involved */}
-            {currentEvent.visibility === "public" &&
-              currentUser &&
-              !isOrganizer &&
-              !currentEvent.isUserInvited && (
-                <div className="mt-6 p-4 bg-nord6 rounded-lg border border-nord5">
-                  <h3 className="font-semibold text-nord1 mb-3">
-                    Join This Event
-                  </h3>
-                  <p className="text-nord3 mb-4">
-                    This is a public event. You can request to join, and the
-                    organizer will review your request.
+              {/* Event Description */}
+              <section>
+                <h3 className="text-xl font-semibold text-nord1 mb-4 flex items-center">
+                  <FiMessageSquare className="mr-2.5 h-5 w-5 text-nord9" />
+                  About This Event
+                </h3>
+                <div className="bg-nord6/60 rounded-lg p-5 md:p-6 border border-nord5 prose prose-sm max-w-none prose-headings:text-nord1 prose-p:text-nord2 prose-a:text-nord10 hover:prose-a:text-nord9">
+                  <p className="whitespace-pre-line text-base leading-relaxed">
+                    {currentEvent.description || <span className="text-nord3 italic">No description provided for this event.</span>}
                   </p>
+                </div>
+              </section>
+
+              {/* RSVP Section - Show only if user is invited and is not the organizer */}
+              {currentEvent.isUserInvited && !isOrganizer && (
+                <section>
+                  <h3 className="text-xl font-semibold text-nord1 mb-4 flex items-center">
+                    <FiCalendar className="mr-2.5 h-5 w-5 text-nord14" />
+                    Your Invitation
+                  </h3>
+                  <div className="bg-nord6/60 rounded-lg border border-nord5 p-5 md:p-6">
+                    <EventRSVP
+                      eventId={currentEvent._id}
+                      status={currentEvent.userInvitationStatus}
+                      displayStyle="both"
+                      onSuccess={() => { if (id) { dispatch(fetchEventById(id)); } }}
+                    />
+                  </div>
+                </section>
+              )}
+
+              {/* Join Request Button - Show for public events if user is not already involved */}
+              {currentEvent.visibility === "public" && currentUser && !isOrganizer && !currentEvent.isUserInvited && (
+                <section className="p-5 md:p-6 bg-nord6/60 rounded-lg border border-nord5">
+                  <h3 className="font-semibold text-nord1 text-lg mb-2">Interested in Joining?</h3>
+                  <p className="text-nord3 mb-5 text-sm">This is a public event. You can request to join, and the organizer will review your submission.</p>
                   <JoinRequestButton
                     eventId={currentEvent._id}
                     eventTitle={currentEvent.title}
-                    onSuccess={() => {
-                      if (id) {
-                        dispatch(fetchEventById(id));
-                      }
-                    }}
-                    className="w-full sm:w-auto"
+                    onSuccess={() => { if (id) { dispatch(fetchEventById(id)); } }}
+                    className="w-full sm:w-auto bg-nord14 hover:bg-nord14/80 text-nord0 font-medium"
                   />
-                </div>
+                </section>
               )}
 
-            {/* Attendees Section */}
-            <div className="mt-8">
-              <h3 className="text-lg font-semibold text-nord1 mb-4 flex items-center">
-                <FiUsers className="mr-2" />
-                Attendees ({currentEvent.attendees.length}/{" "}
-                {currentEvent.capacity > 0
-                  ? currentEvent.capacity
-                  : "Unlimited"}
-                )
-              </h3>
-
-              {/* No attendees placeholder */}
-              {currentEvent.attendees.length === 0 ? (
-                <div className="text-center flex flex-col items-center  py-8 bg-nord6/50 rounded-lg border border-nord5">
-                  <p className="text-nord3">
-                    No one has joined this event yet.
-                  </p>
+              {/* Attendees Section */}
+              <section>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-5">
+                  <h3 className="text-xl font-semibold text-nord1 flex items-center mb-3 sm:mb-0">
+                    <FiUsers className="mr-2.5 h-5 w-5 text-nord9" />
+                    Attendees ({currentEvent.attendees.length}
+                    {currentEvent.capacity > 0 ? ` / ${currentEvent.capacity}` : " attending"})
+                  </h3>
                   {canManageEvent && (
                     <InviteButton onClick={() => setIsInviteModalOpen(true)} />
                   )}
                 </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {currentEvent.attendees.map((attendee) => (
-                    <div
-                      key={attendee._id}
-                      className="p-3 bg-nord6 rounded-lg flex items-center"
-                    >
-                      {/* Attendee avatar */}
-                      <div className="w-10 h-10 rounded-full bg-nord9 flex items-center justify-center text-white font-semibold mr-3 overflow-hidden">
-                        {attendee.profileImage ? (
-                          <img
-                            src={attendee.profileImage}
-                            alt={attendee.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          attendee.name.charAt(0).toUpperCase()
-                        )}
-                      </div>
+                {currentEvent.attendees.length === 0 ? (
+                  <div className="text-center flex flex-col items-center py-10 md:py-16 bg-nord6/60 rounded-lg border-2 border-nord5 border-dashed">
+                    <FiUsers className="h-12 w-12 text-nord3 mb-4" />
+                    <p className="text-nord2 text-lg mb-1">No Attendees Yet</p>
+                    <p className="text-nord3 text-sm">
+                      {canManageEvent ? "Be the first to invite some people!" : "No one has confirmed their attendance yet."}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {currentEvent.attendees.map((attendee) => {
+                      const { Icon: StatusIcon, textColor, bgColor, borderColor } = getStatusStyles(attendee.status);
+                      return (
+                        <div
+                          key={attendee._id}
+                          className={`p-3.5 rounded-lg flex items-center shadow-sm border transition-all duration-300 hover:shadow-md hover:border-nord10/50 ${bgColor} ${borderColor}`}
+                        >
+                          <div className="w-11 h-11 rounded-full bg-nord8 flex items-center justify-center text-white font-semibold mr-3.5 overflow-hidden flex-shrink-0 border-2 border-white shadow">
+                            {attendee.profileImage ? (
+                              <img src={attendee.profileImage} alt={attendee.name} className="w-full h-full object-cover" />
+                            ) : (
+                              attendee.name?.charAt(0).toUpperCase() || '?'
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-nord1 truncate text-sm">{attendee.name || "Unknown User"}</p>
+                            <p className="text-xs text-nord3 truncate">{attendee.email || "No email"}</p>
+                            {attendee.status && (
+                              <div className={`mt-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${textColor}`}>
+                                <StatusIcon className="mr-1 h-3.5 w-3.5" />
+                                {attendee.status.charAt(0).toUpperCase() + attendee.status.slice(1)}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
 
-                      {/* Attendee info */}
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-nord1 truncate">
-                          {attendee.name}
-                        </p>
-                        <p className="text-xs text-nord3 truncate">
-                          {attendee.email}
-                        </p>
-                        {attendee.status && (
-                          <p
-                            className={`text-xs ${
-                              attendee.status === "accepted"
-                                ? "text-green-600"
-                                : attendee.status === "requested"
-                                ? "text-orange-500"
-                                : attendee.status === "declined"
-                                ? "text-red-500"
-                                : "text-gray-500"
-                            }`}
-                          >
-                            {attendee.status.charAt(0).toUpperCase() +
-                              attendee.status.slice(1)}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              {/* Join Requests Manager - For organizers and admins */}
+              {canManageEvent && currentEvent.attendees.some(att => att.status === "requested") && (
+                <section className="border-t border-nord5 pt-8">
+                  <h3 className="text-xl font-semibold text-nord1 mb-4 flex items-center">
+                    <FiAlertTriangle className="mr-2.5 h-5 w-5 text-nord12" />
+                    Manage Join Requests
+                  </h3>
+                  <JoinRequestsManager
+                    eventId={currentEvent._id}
+                    requests={currentEvent.attendees.filter((attendee) => attendee.status === "requested")}
+                    onSuccess={() => { if (id) { dispatch(fetchEventById(id)); } }}
+                  />
+                </section>
               )}
 
-              {/* Invite button for organizer or admin when there are already attendees */}
-              {currentEvent.attendees.length > 0 && canManageEvent && (
-                <div className="mt-4 flex justify-end">
-                  <InviteButton onClick={() => setIsInviteModalOpen(true)} />
-                </div>
+              {/* Reminder Configuration Section for Organizers */}
+              {isOrganizer && (
+                <section className="border-t border-nord5 pt-8">
+                  <h3 className="text-xl font-semibold text-nord1 mb-3 flex items-center">
+                    <FiClock className="mr-2.5 h-5 w-5 text-nord10" />
+                    Event Reminders & Notifications
+                  </h3>
+                  <p className="text-nord3 mb-6 text-sm leading-relaxed">
+                    Configure automatic reminders for attendees. Notify them before the event or remind those who haven't RSVP'd.
+                  </p>
+                  <ReminderConfig
+                    eventId={currentEvent._id}
+                    eventDate={currentEvent.date}
+                    onSuccess={() => { if (id) { dispatch(fetchEventById(id)); } }}
+                  />
+                </section>
               )}
-            </div>
 
-            {/* Join Requests Manager - For organizers and admins */}
-            {canManageEvent && (
-              <div className="mt-8 border-t border-gray-100 pt-8">
-                <h3 className="text-xl font-semibold text-nord1 mb-4 flex items-center">
-                  <FiUsers className="mr-2" />
-                  Join Requests
+              {/* Discussion Board */}
+              <section className="border-t border-nord5 pt-8">
+                <h3 className="text-xl font-semibold text-nord1 mb-3 flex items-center">
+                  <FiMessageSquare className="mr-2.5 h-5 w-5 text-nord7" />
+                  Event Discussion
                 </h3>
-                <JoinRequestsManager
-                  eventId={currentEvent._id}
-                  requests={currentEvent.attendees.filter(
-                    (attendee) => attendee.status === "requested"
-                  )}
-                  onSuccess={() => {
-                    if (id) {
-                      dispatch(fetchEventById(id));
-                    }
-                  }}
-                />
-              </div>
-            )}
-
-            {/* Reminder Configuration Section for Organizers */}
-            {isOrganizer && (
-              <div className="mt-8 border-t border-gray-100 pt-8">
-                <h3 className="text-xl font-semibold text-nord1 mb-4 flex items-center">
-                  <FiClock className="mr-2" />
-                  Event Notifications
-                </h3>
-                <p className="text-nord3 mb-6">
-                  Set up automatic reminders for attendees. You can schedule
-                  notifications before the event or send reminders to people who
-                  haven't responded to your invitation.
+                <p className="text-nord3 mb-6 text-sm leading-relaxed">
+                  Engage with other attendees. Ask questions, share your thoughts, or coordinate plans for the event.
                 </p>
-                <ReminderConfig
-                  eventId={currentEvent._id}
-                  eventDate={currentEvent.date}
-                  onSuccess={() => {
-                    // Refresh event data on successful reminder configuration
-                    if (id) {
-                      dispatch(fetchEventById(id));
-                    }
-                  }}
-                />
-              </div>
-            )}
-
-            {/* Discussion Board */}
-            <div className="mt-8 border-t border-gray-100 pt-8">
-              <h3 className="text-xl font-semibold text-nord1 mb-4 flex items-center">
-                <FiMessageSquare className="mr-2" />
-                Discussion
-              </h3>
-              <p className="text-nord3 mb-6">
-                Join the conversation about this event. Ask questions, share
-                thoughts, or connect with other attendees.
-              </p>
-              {currentEvent._id && (
-                <DiscussionBoard eventId={currentEvent._id} />
-              )}
+                {currentEvent._id && <DiscussionBoard eventId={currentEvent._id} />}
+              </section>
             </div>
           </div>
         </div>
@@ -582,70 +486,48 @@ const EventDetailPage: React.FC = () => {
 
       {/* Delete Confirmation Modal */}
       {isDeleteModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-lg max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-nord0/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-nord6 rounded-xl shadow-2xl max-w-md w-full p-6 md:p-7 border border-nord3">
             <div className="flex justify-between items-start mb-4">
-              <h3 className="text-xl font-bold text-nord1">Delete Event</h3>
-              <button
-                onClick={() => setIsDeleteModalOpen(false)}
-                className="text-nord3 hover:text-nord0"
-              >
-                <FiX size={24} />
+              <h3 className="text-xl font-semibold text-nord1">Confirm Event Deletion</h3>
+              <button onClick={() => setIsDeleteModalOpen(false)} className="text-nord3 hover:text-nord1 p-1 rounded-full hover:bg-nord4/70 transition-colors">
+                <FiX size={20} />
               </button>
             </div>
-
             {deleteError && (
-              <div className="mb-4 p-3 bg-red-50 text-red-700 rounded-md">
+              <div className="mb-4 p-3 bg-nord11/10 text-nord11 text-sm rounded-md border border-nord11/30">
                 {deleteError}
               </div>
             )}
-
             <p className="mb-6 text-nord2">
-              Are you sure you want to delete{" "}
-              <span className="font-medium">{currentEvent.title}</span>? This
-              action cannot be undone.
+              Are you sure you want to permanently delete the event: <br />
+              <strong className="text-nord1">{currentEvent.title}</strong>?
+              <br />This action cannot be undone.
             </p>
-
             <div className="flex justify-end space-x-3">
               <button
                 onClick={() => setIsDeleteModalOpen(false)}
-                className="px-4 py-2 bg-white border border-gray-300 text-nord3 rounded-lg hover:bg-gray-50"
+                className="px-5 py-2.5 bg-nord4 border border-nord3 text-nord1 rounded-lg hover:bg-nord5 transition-colors text-sm font-medium"
                 disabled={deleteLoading}
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteConfirm}
-                className="px-4 py-2 bg-nord11 text-white rounded-lg hover:bg-red-600 flex items-center"
+                className="px-5 py-2.5 bg-nord11 text-white rounded-lg hover:bg-nord11/80 flex items-center transition-colors text-sm font-medium"
                 disabled={deleteLoading}
               >
                 {deleteLoading ? (
                   <>
-                    <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
                     Deleting...
                   </>
                 ) : (
                   <>
-                    <FiTrash2 className="mr-2" />
+                    <FiTrash2 className="mr-1.5 h-4 w-4" />
                     Delete Event
                   </>
                 )}
@@ -660,12 +542,7 @@ const EventDetailPage: React.FC = () => {
         eventId={id || ""}
         isOpen={isInviteModalOpen}
         onClose={() => setIsInviteModalOpen(false)}
-        onSuccess={() => {
-          // Refresh event data
-          if (id) {
-            dispatch(fetchEventById(id));
-          }
-        }}
+        onSuccess={() => { if (id) { dispatch(fetchEventById(id)); } }}
       />
     </div>
   );
